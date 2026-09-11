@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7096EBD13053CA7F008BF1AB /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 7096EBD03053CA7F008BF1AB /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		709649843053C08700480E4F /* Habits.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Habits.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7096EBD13053CA7F008BF1AB /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Habits;
 			packageProductDependencies = (
+				7096EBD03053CA7F008BF1AB /* Supabase */,
 			);
 			productName = Habits;
 			productReference = 709649843053C08700480E4F /* Habits.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 7096497B3053C08700480E4F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7096EBCF3053CA7F008BF1AB /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 709649853053C08700480E4F /* Products */;
 			projectDirPath = "";
@@ -332,6 +341,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7096EBCF3053CA7F008BF1AB /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7096EBD03053CA7F008BF1AB /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7096EBCF3053CA7F008BF1AB /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7096497C3053C08700480E4F /* Project object */;
 }

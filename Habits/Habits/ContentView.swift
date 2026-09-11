@@ -6,14 +6,41 @@
 //
 
 import SwiftUI
+import Auth
 
 struct ContentView: View {
+    @EnvironmentObject var auth: AuthViewModel
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if auth.isLoading {
+                ProgressView()
+            } else if auth.session != nil {
+                SignedInView()
+            } else {
+                LoginView()
+            }
+        }
+    }
+}
+
+private struct SignedInView: View {
+    @EnvironmentObject var auth: AuthViewModel
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.green)
+            Text("Logged in as")
+                .foregroundStyle(.secondary)
+            Text(auth.session?.user.email ?? "")
+                .font(.headline)
+
+            Button("Log Out") {
+                Task { await auth.signOut() }
+            }
+            .padding(.top)
         }
         .padding()
     }
@@ -21,4 +48,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AuthViewModel())
 }
