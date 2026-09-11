@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/settings.local.json
+
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# fastlane (if introduced later)
+fastlane/report.xml
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Local secrets / credentials (nothing here yet — reserved for when
+# Supabase credentials get wired in; see README.md "Credentials")
+Secrets.swift
+.env

@@ -1,0 +1,47 @@
+# AGENTS.md — Habits iOS (project-specific overrides)
+
+> Global instructions live in ~/.codex/AGENTS.md. This file adds
+> habits-ios-specific context only.
+
+## Project overview
+Native iOS companion to the Habits PWA (repo: `workout-tracker`, live at
+https://habits.chrisaug.com). Phase 1 scope: login, weight display/entry,
+Apple HealthKit weight sync, local push reminders. Full requirements live in
+SPEC.md; the build process is in GETTING_STARTED.md — read both before
+making scope decisions.
+
+## Stack
+- Swift, SwiftUI, Xcode
+- Supabase (backend + auth) via `supabase-swift` — same Supabase project as
+  the web app, same tables, same user accounts
+- No custom backend/API layer, same as the web app
+
+## Architecture rules
+- Supabase is the source of truth for all writes
+- The `weight` table (`date`, `value_lbs`, `user_id`, unique on `date,user_id`)
+  is shared with the web app — a schema change here affects `workout-tracker`'s
+  `today.js` too
+- No destructive schema changes without explicit instruction
+- Explain SQL migrations clearly before running
+- Preserve RLS policies after any auth-related changes
+- If Supabase is unreachable, show a clear error state — no offline writes
+- HealthKit access is read-only in phase 1 — no write-back to Apple Health
+  without explicit instruction
+- Reminders are local notifications only in phase 1 — no remote/push
+  server without explicit instruction
+- Do not add dependencies beyond `supabase-swift` without explicit approval
+
+## File structure
+TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 2).
+
+## Versioning
+TBD — once the Xcode project exists: bump Marketing Version / Build number
+in Xcode before every push that changes app behavior, same discipline as
+the web app's `VERSION` constant.
+
+## Pre-push checklist
+1. Bump Marketing Version / Build number in Xcode (once applicable)
+2. Confirm the app builds and runs on device or simulator
+3. Update SPEC.md if scope or requirements changed
+4. Update README.md if setup steps or features changed
+5. Update AGENTS.md if new patterns or gotchas were discovered
