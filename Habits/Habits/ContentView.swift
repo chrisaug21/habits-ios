@@ -28,21 +28,9 @@ private struct SignedInView: View {
     @EnvironmentObject var auth: AuthViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.green)
-            Text("Logged in as")
-                .foregroundStyle(.secondary)
-            Text(auth.session?.user.email ?? "")
-                .font(.headline)
-
-            Button("Log Out") {
-                Task { await auth.signOut() }
-            }
-            .padding(.top)
+        if let userID = auth.session?.user.id {
+            WeightView(userID: userID)
         }
-        .padding()
     }
 }
 
