@@ -67,15 +67,10 @@ weight (
 -- .upsert(..., { onConflict: 'date,user_id' }) behavior in today.js
 ```
 
-One new table (or a column on `user_preferences`) is needed for the
-reminder time, e.g.:
-
-```
-user_preferences.weight_reminder_time  time  (nullable — null = reminders off)
-```
-
-This is additive, non-destructive — consistent with the existing project
-rule of no destructive schema changes without explicit instruction.
+**Decided (2026-09-11):** the reminder time is stored locally on-device via
+`UserDefaults`, not in Supabase — no schema change needed. It only controls
+a local notification firing on this device, so there's no cross-device sync
+requirement for it.
 
 ## Open questions (need your decision before/while building)
 
@@ -92,7 +87,7 @@ rule of no destructive schema changes without explicit instruction.
    sync in the background periodically (needs a HealthKit background
    delivery entitlement, more setup)? **Recommendation**: on-app-open only for phase 1; background sync is a fast follow if the foreground version feels laggy in practice.
 4. **Reminder time default**: pick a sensible default (e.g. 8:00 PM) or
-   require the user to set one before reminders activate? **Recommendation**: require explicit opt-in/set, no default-on reminder.
+   require the user to set one before reminders activate? **Decided:** reminders start off; toggling on pre-fills 8:00 PM as a starting point, adjustable immediately via the time picker — no silent default-on.
 
 ## Non-functional requirements
 

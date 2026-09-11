@@ -8,6 +8,7 @@ import SwiftUI
 struct WeightView: View {
     @EnvironmentObject var auth: AuthViewModel
     @StateObject private var viewModel: WeightViewModel
+    @StateObject private var reminderViewModel = ReminderViewModel()
 
     @State private var manualDate = Date()
     @State private var manualWeight = ""
@@ -41,6 +42,30 @@ struct WeightView: View {
                         .font(.footnote)
                 }
 
+                Section("Daily Reminder") {
+                    Toggle("Remind me to log my weight", isOn: reminderToggleBinding)
+
+                    if reminderViewModel.reminderTime != nil {
+                        DatePicker(
+                            "Time",
+                            selection: reminderTimeBinding,
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+
+                    if reminderViewModel.isAuthorizationDenied {
+                        Text("Notifications are turned off for Habits. Enable them in Settings to get reminders.")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+
+                    if let error = reminderViewModel.errorMessage {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
+
                 Section("Recent") {
                     if viewModel.entries.isEmpty && !viewModel.isLoading {
                         Text("No weight entries yet")
@@ -69,11 +94,35 @@ struct WeightView: View {
             }
             .task {
                 await viewModel.loadEntries()
+                await reminderViewModel.refreshAuthorizationStatus()
             }
             .sheet(isPresented: $showManualEntry) {
                 manualEntrySheet
             }
         }
+    }
+
+    private var reminderToggleBinding: Binding<Bool> {
+        Binding(
+            get: { reminderViewModel.reminderTime != nil },
+            set: { isOn in
+                if isOn {
+                    let defaultTime = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
+                    Task { await reminderViewModel.setReminder(at: defaultTime) }
+                } else {
+                    reminderViewModel.clearReminder()
+                }
+            }
+        )
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: { reminderViewModel.reminderTime ?? Date() },
+            set: { newValue in
+                Task { await reminderViewModel.setReminder(at: newValue) }
+            }
+        )
     }
 
     private var manualEntrySheet: some View {

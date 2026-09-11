@@ -122,9 +122,8 @@ Starting with **local notifications** (scheduled entirely on-device) rather
 than true remote push — no server-side piece needed, and it's sufficient for
 "remind me daily at 8pm to log my weight."
 
-1. **[You · Mac]** Xcode → Signing & Capabilities → **+ Capability** → add **Push Notifications** (this also enables local notification scheduling APIs cleanly, even though phase 1 only uses local, not remote, notifications).
-2. **[Claude Code]** Writes the Swift code for: a permission-request prompt, a settings screen to pick a reminder time, and scheduling a local notification via `UNUserNotificationCenter`.
-3. **[You · iPhone]** Grant the notification permission prompt, set a reminder time, background the app, confirm the notification fires at that time. Milestone 4.
+1. **[Claude Code]** Writes the Swift code for: a permission-request prompt, a reminder toggle + time picker in the Weight screen, and scheduling a local notification via `UNUserNotificationCenter`. No Xcode capability step needed here — that's only required for true remote push (APNs); local, on-device notifications just need the runtime permission prompt below.
+2. **[You · iPhone]** Toggle the reminder on, grant the notification permission prompt, confirm a time, background the app, and confirm the notification fires at that time (default 8:00 PM, adjustable immediately). Milestone 4.
 
 ---
 
