@@ -131,11 +131,20 @@ than true remote push — no server-side piece needed, and it's sufficient for
 
 This is the "share it with just yourself, no App Review" step you said you're comfortable with.
 
-1. **[You · Mac]** Xcode → Product → **Archive**.
-2. **[You · Mac]** In the Organizer window that opens, **Distribute App** → App Store Connect → Upload. (Requires the paid Developer account from Phase 0.5.)
-3. **[You · Web]** In App Store Connect (appstoreconnect.apple.com), add yourself as an **internal tester** on the app.
-4. **[You · iPhone]** Install the **TestFlight** app from the App Store, accept the invite, install your build from there.
-5. No Apple review happens for internal testers — this is your fastest "real device, real distribution mechanism" loop short of a cable.
+**Before you start:** unlike every phase so far, this one needs a real app
+icon — Apple's upload validation checks for one, where Xcode's Run/Debug
+never did. Any 1024×1024 square PNG technically satisfies it; it doesn't
+need to be polished, you can swap it for something real later, before ever
+going public.
+
+1. **[You · Mac]** Get a 1024×1024 PNG (anything square works for now — even a plain color). In Xcode, open `Assets.xcassets` → click **AppIcon** → drag your PNG into the single icon slot.
+2. **[You · Web]** Go to appstoreconnect.apple.com → **My Apps** → **+** → **New App**. Fill in: Platform **iOS**; **Name** (must be globally unique across the entire App Store — plain "Habits" may already be taken by someone else's app; have a backup like "Habits – Chris" ready); Primary language; **Bundle ID** (pick `com.chrisaug.Habits` from the dropdown — it should already be listed, since Xcode registered it with your Developer account back in Phase 2); **SKU** (any unique string you make up, e.g. `habits-ios-001` — internal only, users never see it).
+3. **[You · Mac]** Back in Xcode: Product → **Archive**. Builds a release version and opens the Organizer window when done.
+4. **[You · Mac]** In Organizer, select the archive → **Distribute App** → **App Store Connect** → **Upload**. Defaults are fine through the rest of the prompts. (Requires the paid Developer account from Phase 0.5.)
+5. **[You · Web]** Back in App Store Connect, wait for the build to finish processing — usually 10-30 min, sometimes longer the first time. You'll get an email, or just refresh the TestFlight tab on your app's page.
+6. **[You · Web]** App Store Connect → your app → **TestFlight** tab → add yourself as an **internal tester** (your own Apple ID/email).
+7. **[You · iPhone]** Install the **TestFlight** app from the App Store if you don't have it, accept the invite (email or notification), install your build from there.
+8. No Apple review happens for internal testers — this is your fastest "real device, real distribution mechanism" loop short of a cable.
 
 ---
 
