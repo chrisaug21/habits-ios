@@ -23,13 +23,17 @@ struct SettingsView: View {
     @StateObject private var settingsViewModel: SettingsViewModel
     @StateObject private var weightViewModel: WeightViewModel
     @StateObject private var reminderViewModel = ReminderViewModel()
+    @StateObject private var rotationBuilderViewModel: RotationBuilderViewModel
     @State private var showDeleteConfirmation = false
     @State private var showPasswordSheet = false
+    @State private var showSequenceBuilder = false
+    @State private var showProgramReset = false
     @Environment(\.openURL) private var openURL
 
     init(userID: UUID) {
         _settingsViewModel = StateObject(wrappedValue: SettingsViewModel(userID: userID))
         _weightViewModel = StateObject(wrappedValue: WeightViewModel(userID: userID))
+        _rotationBuilderViewModel = StateObject(wrappedValue: RotationBuilderViewModel(userID: userID))
     }
 
     private var currentUser: User? { auth.session?.user }
@@ -43,6 +47,11 @@ struct SettingsView: View {
 
                     accountCard
                     todayTabCard
+                    WorkoutSequenceCard(
+                        viewModel: rotationBuilderViewModel,
+                        showBuilder: $showSequenceBuilder,
+                        showProgramReset: $showProgramReset
+                    )
                     weightCard
                     reminderCard
                     appCard
@@ -64,9 +73,20 @@ struct SettingsView: View {
                 settingsViewModel.loadProfile(from: currentUser?.userMetadata ?? [:])
                 await settingsViewModel.loadPreferences()
                 await reminderViewModel.refreshAuthorizationStatus()
+                await rotationBuilderViewModel.loadInitial()
             }
             .sheet(isPresented: $showPasswordSheet, onDismiss: settingsViewModel.resetPasswordFields) {
                 passwordSheet
+            }
+            .sheet(isPresented: $showSequenceBuilder, onDismiss: rotationBuilderViewModel.closeBuilder) {
+                RotationBuilderSheet(viewModel: rotationBuilderViewModel) {
+                    showSequenceBuilder = false
+                }
+            }
+            .sheet(isPresented: $showProgramReset) {
+                ProgramResetSheet(viewModel: rotationBuilderViewModel) {
+                    showProgramReset = false
+                }
             }
             .alert("Delete account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
