@@ -44,7 +44,7 @@ final class TodayViewModel: ObservableObject {
     func workout(byID id: String) -> WorkoutDefinition? {
         if let match = activeWorkoutList.first(where: { $0.id == id }) { return match }
         if let libraryMatch = workoutLibrary.first(where: { $0.id == id }) {
-            return WorkoutDefinition(id: libraryMatch.id, name: libraryMatch.name, icon: libraryMatch.icon ?? "figure.strengthtraining.traditional", category: libraryMatch.category ?? "")
+            return WorkoutDefinition(id: libraryMatch.id, name: libraryMatch.name, icon: LucideIcon.sfSymbolName(libraryMatch.icon), category: libraryMatch.category ?? "")
         }
         return DefaultWorkouts.all.first { $0.id == id }
     }
@@ -158,7 +158,7 @@ final class TodayViewModel: ObservableObject {
                 WorkoutDefinition(
                     id: row.workout_id,
                     name: row.workout_library?.name ?? row.workout_id,
-                    icon: row.workout_library?.icon ?? "figure.strengthtraining.traditional",
+                    icon: LucideIcon.sfSymbolName(row.workout_library?.icon),
                     category: row.workout_library?.category ?? ""
                 )
             }

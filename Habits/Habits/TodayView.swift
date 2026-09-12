@@ -25,14 +25,19 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    dateLabel
+
                     if let error = viewModel.errorMessage {
                         Text(error)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                            .font(.system(size: 13))
+                            .foregroundStyle(HabitsColor.red)
                     }
 
                     if viewModel.preferences.show_workout_card {
                         workoutCard
+                        if let tomorrow = viewModel.tomorrowWorkout, viewModel.todayEntry != nil {
+                            tomorrowCard(tomorrow)
+                        }
                     }
                     if viewModel.preferences.show_journal_card {
                         journalCard
@@ -41,14 +46,20 @@ struct TodayView: View {
                         weightCard
                     }
                 }
-                .padding()
+                .padding(16)
             }
-            .navigationTitle(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
+            .background(HabitsColor.bg.ignoresSafeArea())
+            .scrollContentBackground(.hidden)
+            .navigationTitle("Habits")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Log Out") {
                         Task { await auth.signOut() }
                     }
+                    .foregroundStyle(HabitsColor.textSecondary)
                 }
             }
             .refreshable {
@@ -62,6 +73,7 @@ struct TodayView: View {
             .overlay {
                 if viewModel.isLoading && viewModel.history.isEmpty {
                     ProgressView()
+                        .tint(HabitsColor.accent)
                 }
             }
             .sheet(isPresented: $showLogActivitySheet) { logActivitySheet }
@@ -70,80 +82,107 @@ struct TodayView: View {
             .sheet(isPresented: $showJournalSheet) { journalSheet }
             .sheet(isPresented: $showWeightSheet) { weightSheet }
         }
+        .tint(HabitsColor.accent)
+        .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Header
+
+    private var dateLabel: some View {
+        Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1.2)
+            .foregroundStyle(HabitsColor.textSecondary)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
     }
 
     // MARK: - Workout card
 
     private var workoutCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 14) {
             switch viewModel.heroState {
             case .defaultNext:
                 if let suggested = viewModel.suggested {
-                    Label("Next Up Workout", systemImage: "arrow.forward.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        Image(systemName: suggested.icon)
-                            .font(.title2)
-                            .frame(width: 36)
-                        VStack(alignment: .leading) {
-                            Text(suggested.name).font(.headline)
-                            if let days = viewModel.daysSinceLastDone(suggested.id) {
-                                Text(lastDoneText(days)).font(.caption).foregroundStyle(.secondary)
-                            } else {
-                                Text("Never done").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+                    eyebrow("NEXT UP WORKOUT", color: HabitsColor.accent)
+                    Image(systemName: suggested.icon)
+                        .font(.system(size: 40))
+                        .foregroundColor(HabitsColor.accent)
+                        .frame(height: 48)
+                    Text(suggested.name)
+                        .font(.system(size: 24, weight: .heavy))
+                        .foregroundStyle(HabitsColor.textPrimary)
+                        .multilineTextAlignment(.center)
+                    if let days = viewModel.daysSinceLastDone(suggested.id) {
+                        HabitsPill(text: lastDoneText(days))
+                    } else {
+                        HabitsPill(text: "Never done")
                     }
-                    HStack {
+                    VStack(spacing: 10) {
                         Button {
                             Task { await viewModel.markDone() }
                         } label: {
-                            Label("Done", systemImage: "checkmark")
-                                .frame(maxWidth: .infinity)
+                            Text("Done!")
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(HabitsPrimaryButtonStyle())
                         .disabled(viewModel.isProcessing)
 
-                        Button("Log other activity…") {
+                        Button("Log activity") {
                             showLogActivitySheet = true
                         }
+                        .buttonStyle(HabitsGhostButtonStyle())
                         .disabled(viewModel.isProcessing)
                     }
+                    .padding(.top, 6)
                 }
             case .done, .skipped, .other:
-                Label(heroEyebrow, systemImage: heroIcon)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(heroTitle).font(.headline)
+                eyebrow(heroEyebrow, color: heroAccentColor)
+                Image(systemName: heroIcon)
+                    .font(.system(size: 40))
+                    .foregroundColor(heroAccentColor)
+                    .frame(height: 48)
+                Text(heroTitle)
+                    .font(.system(size: 24, weight: .heavy))
+                    .foregroundStyle(HabitsColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text(heroSubtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(HabitsColor.textSecondary)
                 if let label = viewModel.undoLabel {
                     Button {
                         Task { await viewModel.undoLastEntry() }
                     } label: {
                         Label("Undo \(label)", systemImage: "arrow.uturn.backward")
                     }
+                    .buttonStyle(HabitsGhostButtonStyle())
                     .disabled(viewModel.isProcessing)
-                }
-            }
-
-            if let tomorrow = viewModel.tomorrowWorkout, viewModel.todayEntry != nil {
-                Divider()
-                HStack {
-                    Text("Tomorrow:").font(.caption).foregroundStyle(.secondary)
-                    Image(systemName: tomorrow.icon).font(.caption)
-                    Text(tomorrow.name).font(.caption)
+                    .padding(.top, 6)
                 }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .padding(.horizontal, 20)
+        .background(HabitsColor.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(HabitsColor.borderActive.opacity(0.5), lineWidth: 1)
+        )
+    }
+
+    private func eyebrow(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .bold))
+            .tracking(1.4)
+            .foregroundStyle(color)
     }
 
     private var heroEyebrow: String {
         switch viewModel.heroState {
-        case .done: return "Completed"
-        case .skipped: return "Day Off"
-        case .other: return "Other Activity"
+        case .done: return "COMPLETED"
+        case .skipped: return "DAY OFF"
+        case .other: return "OTHER ACTIVITY"
         case .defaultNext: return ""
         }
     }
@@ -157,6 +196,14 @@ struct TodayView: View {
         }
     }
 
+    private var heroAccentColor: Color {
+        switch viewModel.heroState {
+        case .skipped: return HabitsColor.amber
+        case .other: return HabitsColor.teal
+        default: return HabitsColor.accent
+        }
+    }
+
     private var heroTitle: String {
         switch viewModel.heroState {
         case .skipped: return "Rest Day"
@@ -166,39 +213,90 @@ struct TodayView: View {
         }
     }
 
+    private var heroSubtitle: String {
+        switch viewModel.heroState {
+        case .done: return "Completed today"
+        case .skipped: return "Day off logged"
+        case .other: return "Other activity logged"
+        case .defaultNext: return ""
+        }
+    }
+
     private func lastDoneText(_ days: Int) -> String {
         days == 0 ? "Today" : "Last done \(days)d ago"
+    }
+
+    // MARK: - Tomorrow preview
+
+    private func tomorrowCard(_ workout: WorkoutDefinition) -> some View {
+        VStack(spacing: 6) {
+            Text("TOMORROW")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(HabitsColor.textSecondary)
+            HStack(spacing: 7) {
+                Image(systemName: workout.icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(HabitsColor.textSecondary)
+                Text(workout.name)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(HabitsColor.textPrimary)
+            }
+            if let days = viewModel.daysSinceLastDone(workout.id) {
+                HabitsPill(text: lastDoneText(days))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .background(HabitsColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(HabitsColor.border, lineWidth: 1)
+        )
     }
 
     // MARK: - Journal card
 
     private var journalCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Journal").font(.headline)
+        VStack(alignment: .leading, spacing: 14) {
+            Text("JOURNAL")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(HabitsColor.textSecondary)
             if let entry = viewModel.todayJournalEntry {
-                if let intention = entry.intention, !intention.isEmpty {
-                    journalField("Intention", intention)
-                }
-                if let gratitude = entry.gratitude, !gratitude.isEmpty {
-                    journalField("Gratitude", gratitude)
-                }
-                if let oneThing = entry.one_thing, !oneThing.isEmpty {
-                    journalField("One thing", oneThing)
+                VStack(alignment: .leading, spacing: 10) {
+                    if let intention = entry.intention, !intention.isEmpty {
+                        journalField("Intention", intention)
+                    }
+                    if let gratitude = entry.gratitude, !gratitude.isEmpty {
+                        journalField("Gratitude", gratitude)
+                    }
+                    if let oneThing = entry.one_thing, !oneThing.isEmpty {
+                        journalField("One thing", oneThing)
+                    }
                 }
                 Button("Edit") { showJournalSheet = true }
+                    .buttonStyle(HabitsGhostButtonStyle())
             } else {
                 Button("Journal") { showJournalSheet = true }
+                    .buttonStyle(HabitsPrimaryButtonStyle())
             }
         }
-        .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .habitsCard()
     }
 
     private func journalField(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label + ":").font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.subheadline)
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.0)
+                .foregroundStyle(HabitsColor.textDim)
+            Text(value)
+                .font(.system(size: 14))
+                .foregroundStyle(HabitsColor.textPrimary)
         }
     }
 
@@ -207,18 +305,24 @@ struct TodayView: View {
     private var weightCard: some View {
         let today = TodayViewModel.todayStr()
         let entry = weightViewModel.entries.first { $0.date == today }
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("Weight").font(.headline)
+        return VStack(alignment: .leading, spacing: 14) {
+            Text("WEIGHT")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(HabitsColor.textSecondary)
             if let entry {
-                Text("\(entry.value_lbs, specifier: "%.1f") lbs").font(.title3)
+                Text("\(entry.value_lbs, specifier: "%.1f") lbs")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(HabitsColor.textPrimary)
                 Button("Edit") { showWeightSheet = true }
+                    .buttonStyle(HabitsGhostButtonStyle())
             } else {
                 Button("Log Weight") { showWeightSheet = true }
+                    .buttonStyle(HabitsPrimaryButtonStyle())
             }
         }
-        .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .habitsCard()
     }
 
     // MARK: - Sheets
@@ -390,7 +494,7 @@ private struct ChipFlow: View {
             HStack {
                 ForEach(chips, id: \.self) { chip in
                     Button(chip) { onTap(chip) }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(HabitsChipButtonStyle())
                 }
             }
         }

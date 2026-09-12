@@ -37,6 +37,25 @@ enum DefaultWorkouts {
     }
 }
 
+/// `workout_library.icon` stores Lucide icon names (the set the web app writes —
+/// see `iconByCategory` in `data.js` and the hardcoded fallback list in `app.js`),
+/// not SF Symbol names, so they need translating before use in `Image(systemName:)`.
+enum LucideIcon {
+    private static let sfSymbolNames: [String: String] = [
+        "bike": "bicycle",
+        "dumbbell": "dumbbell.fill",
+        "flower-2": "figure.mind.and.body",
+        "sparkles": "sparkles",
+        "moon": "moon.fill",
+        "zap": "bolt.fill",
+    ]
+
+    static func sfSymbolName(_ lucideName: String?) -> String {
+        guard let lucideName else { return "figure.strengthtraining.traditional" }
+        return sfSymbolNames[lucideName] ?? "figure.strengthtraining.traditional"
+    }
+}
+
 struct HistoryRow: Codable, Identifiable, Equatable {
     var id: Int?
     let type: String
