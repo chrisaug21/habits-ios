@@ -69,6 +69,12 @@ struct SettingsView: View {
                     .buttonBorderShape(.roundedRectangle)
                     .foregroundStyle(.red)
                 }
+
+                Section {
+                    HabitsVersionFooter(color: .secondary)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
             }
             .navigationTitle("Settings")
             .task {

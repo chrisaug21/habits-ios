@@ -37,7 +37,7 @@ TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 
 ## Versioning
 Two fields, both in the `Habits` target → General tab → Identity section:
 
-- Build number (`CURRENT_PROJECT_VERSION`, currently `2`) — bump by 1
+- Build number (`CURRENT_PROJECT_VERSION`, currently `7`) — bump by 1
   before every push that changes app behavior. Always increment, no
   judgment call, same discipline as the web app's `VERSION` constant. Apple
   also requires a unique build number per TestFlight/App Store upload.
@@ -46,6 +46,18 @@ Two fields, both in the `Habits` target → General tab → Identity section:
   a real TestFlight/App Store build) — not on every GitHub push, since a
   push alone doesn't ship anything (see GETTING_STARTED.md's GitHub-vs-App
   Store note).
+
+### On-screen version footer
+Every screen shows a small `v{MARKETING_VERSION}.{BUILD}` readout at the
+bottom (e.g. `v1.0.7`), via `HabitsVersionFooter` in `Theme.swift`. Mirrors
+the web app's x.x.x look while staying tied to the two Xcode fields above
+instead of a third, separately-maintained version string: the first two
+components are `MARKETING_VERSION` as-is, the third is the build number.
+It's a live readout of `Bundle.main.infoDictionary`, not a hardcoded
+string — nothing to update by hand beyond the two bump rules above. Add
+`HabitsVersionFooter()` to any new screen's content (pass `color:
+.secondary` on a screen that hasn't opted into the app's dark theme, like
+Settings currently hasn't).
 
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable)

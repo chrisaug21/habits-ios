@@ -86,6 +86,8 @@ struct LogView: View {
                         }
                         .id(subTab)
                         .transition(subTabTransition)
+
+                        HabitsVersionFooter()
                     }
                     .padding(16)
                     .clipped()

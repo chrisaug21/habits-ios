@@ -44,6 +44,8 @@ struct TodayView: View {
                     if viewModel.preferences.show_weight_card {
                         weightCard
                     }
+
+                    HabitsVersionFooter()
                 }
                 .padding(16)
             }

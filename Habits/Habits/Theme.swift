@@ -376,3 +376,33 @@ struct HabitsSegmentedControl<Item: Identifiable & Hashable>: View {
         .animation(.easeOut(duration: 0.15), value: selection)
     }
 }
+
+/// Small dim version readout shown at the bottom of every screen, mirroring
+/// the web app's footer version tag. Reads `MARKETING_VERSION` and the build
+/// number (`CURRENT_PROJECT_VERSION`) straight out of Info.plist — see
+/// CLAUDE.md's Versioning section for the `v{MARKETING_VERSION}.{BUILD}`
+/// convention — so it's always a live readout of the two Xcode fields rather
+/// than a separately maintained string that can drift out of sync.
+struct HabitsVersionFooter: View {
+    /// Defaults to the same quiet-but-legible color as other secondary
+    /// labels (e.g. the JOURNAL/WEIGHT section headers) — `textDim` reads as
+    /// basically invisible at this text size. Pass `.secondary` (or similar)
+    /// on a screen like Settings that hasn't opted into the app's dark theme
+    /// and still uses adaptive system colors.
+    var color: Color = HabitsColor.textSecondary
+
+    private var versionString: String {
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        return "v\(shortVersion).\(build)"
+    }
+
+    var body: some View {
+        Text(versionString)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(color)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+    }
+}
