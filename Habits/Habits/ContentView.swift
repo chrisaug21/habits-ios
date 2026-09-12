@@ -32,8 +32,10 @@ private struct SignedInView: View {
             TabView {
                 TodayView(userID: userID)
                     .tabItem { Label("Today", systemImage: "sun.max.fill") }
-                WeightView(userID: userID)
-                    .tabItem { Label("Weight", systemImage: "scalemass.fill") }
+                LogView(userID: userID)
+                    .tabItem { Label("Log", systemImage: "calendar") }
+                SettingsView(userID: userID)
+                    .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             }
         }
     }

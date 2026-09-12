@@ -74,6 +74,12 @@ struct HistoryInsertPayload: Encodable {
     let user_id: UUID
 }
 
+struct HistoryUpdatePayload: Encodable {
+    let type: String
+    let note: String?
+    let advanced: Bool
+}
+
 struct StateRow: Codable, Equatable {
     var id: Int?
     var rotation_index: Int

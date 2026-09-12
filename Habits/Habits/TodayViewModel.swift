@@ -326,6 +326,67 @@ final class TodayViewModel: ObservableObject {
             .execute()
     }
 
+    // MARK: - Backfill (Log screen)
+
+    /// Logs or edits a history entry for a past date. Mirrors the web app's
+    /// `confirmBackfill` in log.js: the rotation index only advances when
+    /// this is the most recent rotation-relevant entry — a later entry that
+    /// already advanced the rotation means this backfill shouldn't advance
+    /// it again — and editing an existing entry adjusts the index by
+    /// whatever the advance/no-advance state changed to.
+    func backfillLogEntry(date: String, type: String, note: String?) async -> Bool {
+        guard !isProcessing else { return false }
+        isProcessing = true
+        errorMessage = nil
+        defer { isProcessing = false }
+
+        let existing = history.last { $0.date == date }
+        let rotationIDs = Set(activeWorkoutList.map(\.id))
+        let isRotationWorkout = rotationIDs.contains(type)
+        let hasLaterEntries = history.contains { $0.date > date && rotationIDs.contains($0.type) }
+        let shouldAdvance = isRotationWorkout && !hasLaterEntries
+        let count = max(activeRotation.count, 1)
+
+        do {
+            if let existing, let existingID = existing.id {
+                let wasAdvanced = existing.advanced
+                try await SupabaseManager.client
+                    .from("history")
+                    .update(HistoryUpdatePayload(type: type, note: note, advanced: shouldAdvance))
+                    .eq("id", value: existingID)
+                    .execute()
+
+                if let idx = history.firstIndex(where: { $0.id == existingID }) {
+                    history[idx] = HistoryRow(id: existingID, type: type, date: existing.date, advanced: shouldAdvance, note: note, sequence: existing.sequence)
+                }
+
+                if shouldAdvance && !wasAdvanced {
+                    rotationIndex = (rotationIndex + 1) % count
+                } else if !shouldAdvance && wasAdvanced {
+                    rotationIndex = ((rotationIndex - 1) % count + count) % count
+                }
+            } else {
+                try await insertHistoryEntry(type: type, date: date, advanced: shouldAdvance, note: note)
+                if shouldAdvance {
+                    rotationIndex = (rotationIndex + 1) % count
+                }
+            }
+
+            try await updateState(rotationIndex: rotationIndex, actionDate: actionDate)
+
+            if type == "other", let note, !note.isEmpty {
+                RecentChipsStore.remember(note, in: RecentChipsStore.otherActivitiesKey)
+            }
+            if type == "off", let note, !note.isEmpty {
+                RecentChipsStore.remember(note, in: RecentChipsStore.skipReasonsKey)
+            }
+            return true
+        } catch {
+            errorMessage = "Could not save — check your connection"
+            return false
+        }
+    }
+
     // MARK: - Journal
 
     enum JournalSaveResult {
