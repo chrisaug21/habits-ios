@@ -52,9 +52,15 @@ final class WeightViewModel: ObservableObject {
     }
 
     func addManualEntry(date: Date, pounds: Double) async {
+        await addManualEntry(dateString: Self.dateFormatter.string(from: date), pounds: pounds)
+    }
+
+    /// Used by Log's backfill sheet, which already has a "yyyy-MM-dd" string
+    /// for the day being edited — avoids a lossy string->Date->string round trip.
+    func addManualEntry(dateString: String, pounds: Double) async {
         errorMessage = nil
         do {
-            try await upsert(date: date, pounds: pounds)
+            try await upsert(dateString: dateString, pounds: pounds)
             await loadEntries()
         } catch {
             errorMessage = error.localizedDescription
@@ -68,7 +74,7 @@ final class WeightViewModel: ObservableObject {
         do {
             let samples = try await HealthKitManager.shared.fetchRecentBodyMassSamples()
             for sample in samples {
-                try await upsert(date: sample.date, pounds: sample.pounds)
+                try await upsert(dateString: Self.dateFormatter.string(from: sample.date), pounds: sample.pounds)
             }
             await loadEntries()
         } catch {
@@ -77,12 +83,8 @@ final class WeightViewModel: ObservableObject {
         isSyncing = false
     }
 
-    private func upsert(date: Date, pounds: Double) async throws {
-        let payload = WeightUpsertPayload(
-            date: Self.dateFormatter.string(from: date),
-            value_lbs: pounds,
-            user_id: userID
-        )
+    private func upsert(dateString: String, pounds: Double) async throws {
+        let payload = WeightUpsertPayload(date: dateString, value_lbs: pounds, user_id: userID)
         try await SupabaseManager.client
             .from("weight")
             .upsert(payload, onConflict: "date,user_id")

@@ -6,7 +6,6 @@
 import SwiftUI
 
 struct TodayView: View {
-    @EnvironmentObject var auth: AuthViewModel
     @StateObject private var viewModel: TodayViewModel
     @StateObject private var weightViewModel: WeightViewModel
 
@@ -45,6 +44,8 @@ struct TodayView: View {
                     if viewModel.preferences.show_weight_card {
                         weightCard
                     }
+
+                    HabitsVersionFooter()
                 }
                 .padding(16)
             }
@@ -54,14 +55,6 @@ struct TodayView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Log Out") {
-                        Task { await auth.signOut() }
-                    }
-                    .foregroundStyle(HabitsColor.textSecondary)
-                }
-            }
             .refreshable {
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()
@@ -342,7 +335,7 @@ struct TodayView: View {
                         } label: {
                             logActivityRow(icon: workout.icon, title: workout.name)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HabitsRowButtonStyle())
                     }
                     Button {
                         showLogActivitySheet = false
@@ -350,14 +343,14 @@ struct TodayView: View {
                     } label: {
                         logActivityRow(icon: "moon.fill", title: "Rest Day")
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HabitsRowButtonStyle())
                     Button {
                         showLogActivitySheet = false
                         showOtherActivitySheet = true
                     } label: {
                         logActivityRow(icon: "bolt.fill", title: "Other activity…")
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HabitsRowButtonStyle())
                 }
                 Button("Cancel") { showLogActivitySheet = false }
                     .buttonStyle(HabitsGhostButtonStyle())
@@ -460,7 +453,7 @@ private struct SkipReasonSheet: View {
             HabitsTextField(placeholder: "Reason (optional)", text: $reason)
             HStack(spacing: 10) {
                 Button("Cancel", action: onCancel)
-                    .buttonStyle(HabitsGhostButtonStyle())
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Skip Today") {
                     onConfirm(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reason)
                 }
@@ -494,7 +487,7 @@ private struct OtherActivitySheet: View {
             HabitsTextField(placeholder: "Activity name…", text: $name)
             HStack(spacing: 10) {
                 Button("Cancel", action: onCancel)
-                    .buttonStyle(HabitsGhostButtonStyle())
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Log It") { onConfirm(name) }
                     .buttonStyle(HabitsPrimaryButtonStyle())
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -557,7 +550,7 @@ private struct JournalEditorSheet: View {
                             Button("Yes") { Task { await save(confirmed: true) } }
                                 .buttonStyle(HabitsPrimaryButtonStyle())
                             Button("Change it") { showNudge = false }
-                                .buttonStyle(HabitsGhostButtonStyle())
+                                .buttonStyle(HabitsGhostButtonStyle(size: .large))
                         }
                     }
                     .padding(14)
@@ -571,7 +564,7 @@ private struct JournalEditorSheet: View {
 
                 HStack(spacing: 10) {
                     Button("Cancel", action: onDone)
-                        .buttonStyle(HabitsGhostButtonStyle())
+                        .buttonStyle(HabitsGhostButtonStyle(size: .large))
                     Button("Save") { Task { await save(confirmed: false) } }
                         .buttonStyle(HabitsPrimaryButtonStyle())
                         .disabled(isSaving)
@@ -646,7 +639,7 @@ private struct WeightQuickEntryForm: View {
             )
             HStack(spacing: 10) {
                 Button("Cancel", action: onCancel)
-                    .buttonStyle(HabitsGhostButtonStyle())
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Save") {
                     if let pounds = Double(text) { onSave(pounds) }
                 }

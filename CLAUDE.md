@@ -43,7 +43,7 @@ rediscover the layout.
 The Xcode project has two version fields, both in the `Habits` target →
 **General** tab → **Identity** section:
 
-- **Build number** (`CURRENT_PROJECT_VERSION`, currently `2`) — bump by 1
+- **Build number** (`CURRENT_PROJECT_VERSION`, currently `8`) — bump by 1
   before every push that changes app behavior. No judgment call needed:
   always increment, same discipline as the web app's `VERSION` constant
   (global CLAUDE.md's version discipline rule). Apple also requires every
@@ -55,6 +55,23 @@ The Xcode project has two version fields, both in the `Habits` target →
   every push — pushing to GitHub alone never requires a Marketing Version
   bump, since it doesn't ship anything (see the GitHub-vs-App-Store note in
   [GETTING_STARTED.md](./GETTING_STARTED.md)).
+
+### On-screen version footer
+Every screen shows a small `v{MARKETING_VERSION}.{BUILD}` readout at the
+bottom (e.g. `v1.0.8`), via `HabitsVersionFooter` in
+[Theme.swift](./Habits/Habits/Theme.swift). This mirrors the web app's x.x.x
+look while staying tied to the two Xcode fields above instead of a third,
+separately-maintained version string:
+- The first two components are `MARKETING_VERSION` as-is (already
+  major.minor, e.g. `1.0`).
+- The third component is the build number (`CURRENT_PROJECT_VERSION`).
+
+It's a live readout of `Bundle.main.infoDictionary` (`CFBundleShortVersionString`
+/ `CFBundleVersion`), not a hardcoded string — so it stays in sync with those
+two fields automatically, with nothing to update by hand beyond following
+the two bump rules above. Add `HabitsVersionFooter()` to the bottom of any new screen's
+content (pass `color: .secondary` on a screen that hasn't opted into the
+app's dark theme, like Settings currently hasn't).
 
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable — see Versioning above)
