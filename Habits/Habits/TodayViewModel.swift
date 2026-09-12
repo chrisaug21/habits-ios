@@ -165,7 +165,9 @@ final class TodayViewModel: ObservableObject {
             self.journal = try await journalRows
             self.preferences = try await preferencesRow
         } catch {
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }

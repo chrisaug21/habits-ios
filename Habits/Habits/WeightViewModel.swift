@@ -46,7 +46,9 @@ final class WeightViewModel: ObservableObject {
                 .value
             entries = rows
         } catch {
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
@@ -63,7 +65,9 @@ final class WeightViewModel: ObservableObject {
             try await upsert(dateString: dateString, pounds: pounds)
             await loadEntries()
         } catch {
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -78,7 +82,9 @@ final class WeightViewModel: ObservableObject {
             }
             await loadEntries()
         } catch {
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
         isSyncing = false
     }
