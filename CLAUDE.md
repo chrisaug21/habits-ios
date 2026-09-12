@@ -40,11 +40,21 @@ Phase 2). Update this section then so future sessions don't have to
 rediscover the layout.
 
 ## Versioning
-TBD — once the Xcode project exists, this section should specify: bump the
-Marketing Version / Build number in Xcode's target settings before every
-push that changes app behavior, mirroring the same discipline the web app
-applies to its `VERSION` constant (see the global CLAUDE.md's version
-discipline rule, which still applies here).
+The Xcode project has two version fields, both in the `Habits` target →
+**General** tab → **Identity** section:
+
+- **Build number** (`CURRENT_PROJECT_VERSION`, currently `2`) — bump by 1
+  before every push that changes app behavior. No judgment call needed:
+  always increment, same discipline as the web app's `VERSION` constant
+  (global CLAUDE.md's version discipline rule). Apple also requires every
+  TestFlight/App Store upload to have a unique build number, so an
+  always-incrementing counter avoids surprises there too.
+- **Marketing Version** (`MARKETING_VERSION`, currently `1.0`) — the
+  user-facing version. Bump deliberately at real milestones (finishing a
+  Phase 8 screen, cutting a real TestFlight/App Store build) rather than on
+  every push — pushing to GitHub alone never requires a Marketing Version
+  bump, since it doesn't ship anything (see the GitHub-vs-App-Store note in
+  [GETTING_STARTED.md](./GETTING_STARTED.md)).
 
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable — see Versioning above)
