@@ -242,10 +242,66 @@ Fixing this would mean sharing state across tabs, which is a bigger
 architectural change than this pass — worth revisiting if it's annoying in
 daily use.
 
+## Phase 8 — Stats Screen (spec addendum, decided 2026-09-12)
+
+The third phase 8 native screen. Brings the web app's `stats.js` natively
+as a new fourth tab, read-only (no writes at all in this pass).
+
+**In scope:**
+
+- **Tab bar change**: adds `StatsView` as a new tab, inserted between Log
+  and Settings (Today, Log, Stats, Settings).
+- **Range toggle**: Last 7 Days / Last 30 Days / All Time, defaults to 30
+  days — matches the web app's default.
+- **Total Workouts card**: count of history entries in the selected range,
+  excluding rest days (`type == "off"`).
+- **Streaks card**: current streak and longest streak, both computed over
+  *all* history regardless of the range toggle — matches the web app
+  (`computeCurrentStreak`/`computeLongestStreak` in `stats.js` don't take
+  the range into account, only the Total Workouts / by-type breakdown do).
+- **Consistency card**: distinct workout days ÷ days-in-range, as a
+  percentage. For "All Time", the denominator is days since the first-ever
+  history entry (inclusive) rather than a fixed number.
+- **Workouts by Type card**: a bar per active rotation workout (name, icon,
+  "last done" pill using the same color rules as Today/Log, count/bar
+  scaled to the largest bar), plus an expandable "Other" row listing
+  one-off activities (date + note) for anything outside the active
+  rotation — matches the web app's collapsible `#stats-other-row`.
+- **Weight trend chart**: raw weight points, a 7-day rolling average line,
+  and a smoothed trend line (a rolling average of the rolling average) —
+  same math as `computeRollingSeries` in `app.js`, filtered to the selected
+  range. Built with Apple's native Swift Charts framework (`import Charts`)
+  — first-party, ships with iOS, not a new third-party dependency. Shows an
+  empty state below 2 data points, matching the web app.
+- Reads the active workout rotation the same way Today/Log do:
+  `user_rotation`/`workout_library` if customized, otherwise the hardcoded
+  default 5-workout list.
+
+**Data model** — read-only, same tables as Today/Log, no schema changes,
+no new writes:
+
+```
+history        (id, user_id, type, date, advanced, note, sequence)
+workout_library (id, name, category, icon, is_global, created_by)
+user_rotation   (id, position, workout_id, user_id)
+weight          (date, value_lbs, user_id)
+```
+
+**Explicitly out of scope for this pass:**
+
+- Any editing — Stats is purely a read-only summary view.
+- Journal-as-its-own-history-view — the remaining phase 8 step.
+
+**Known limitation carried over from Today/Log:** Stats owns its own
+independent data fetch (same pattern as Today/Log/Settings each owning
+their own `TodayViewModel`/`WeightViewModel` instance) — a backfill made in
+Log won't be reflected in Stats until Stats is reloaded (pull-to-refresh,
+or switching tabs back).
+
 ## Later phases (not speced yet)
 
-Stats and Journal-as-its-own-screen remain as additive native screens
-after Log — working toward full feature parity with the web app, at which
-point retiring the web app becomes a real option rather than a plan. Each
-gets its own short spec addition when you get there, same pattern as
-Today and Log above.
+Journal-as-its-own-screen remains as an additive native screen after
+Stats — working toward full feature parity with the web app, at which
+point retiring the web app becomes a real option rather than a plan. Gets
+its own short spec addition when you get there, same pattern as Today,
+Log, and Stats above.

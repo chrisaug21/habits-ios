@@ -34,6 +34,8 @@ private struct SignedInView: View {
                     .tabItem { Label("Today", systemImage: "sun.max.fill") }
                 LogView(userID: userID)
                     .tabItem { Label("Log", systemImage: "calendar") }
+                StatsView(userID: userID)
+                    .tabItem { Label("Stats", systemImage: "chart.bar.fill") }
                 SettingsView(userID: userID)
                     .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             }

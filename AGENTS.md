@@ -14,6 +14,8 @@ making scope decisions.
 - Swift, SwiftUI, Xcode
 - Supabase (backend + auth) via `supabase-swift` — same Supabase project as
   the web app, same tables, same user accounts
+- Swift Charts (first-party, ships with iOS — not a new dependency) for the
+  Stats screen's weight trend chart
 - No custom backend/API layer, same as the web app
 
 ## Architecture rules
@@ -37,11 +39,11 @@ TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 
 ## Versioning
 Two fields, both in the `Habits` target → General tab → Identity section:
 
-- Build number (`CURRENT_PROJECT_VERSION`, currently `8`) — bump by 1
+- Build number (`CURRENT_PROJECT_VERSION`, currently `9`) — bump by 1
   before every push that changes app behavior. Always increment, no
   judgment call, same discipline as the web app's `VERSION` constant. Apple
   also requires a unique build number per TestFlight/App Store upload.
-- Marketing Version (`MARKETING_VERSION`, currently `1.0`) — the
+- Marketing Version (`MARKETING_VERSION`, currently `1.1`) — the
   user-facing version. Bump at real milestones (a Phase 8 screen shipping,
   a real TestFlight/App Store build) — not on every GitHub push, since a
   push alone doesn't ship anything (see GETTING_STARTED.md's GitHub-vs-App
