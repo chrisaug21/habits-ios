@@ -35,9 +35,17 @@ making scope decisions.
 TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 2).
 
 ## Versioning
-TBD — once the Xcode project exists: bump Marketing Version / Build number
-in Xcode before every push that changes app behavior, same discipline as
-the web app's `VERSION` constant.
+Two fields, both in the `Habits` target → General tab → Identity section:
+
+- Build number (`CURRENT_PROJECT_VERSION`, currently `2`) — bump by 1
+  before every push that changes app behavior. Always increment, no
+  judgment call, same discipline as the web app's `VERSION` constant. Apple
+  also requires a unique build number per TestFlight/App Store upload.
+- Marketing Version (`MARKETING_VERSION`, currently `1.0`) — the
+  user-facing version. Bump at real milestones (a Phase 8 screen shipping,
+  a real TestFlight/App Store build) — not on every GitHub push, since a
+  push alone doesn't ship anything (see GETTING_STARTED.md's GitHub-vs-App
+  Store note).
 
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable)

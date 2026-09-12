@@ -106,10 +106,66 @@ phase 1 if you're staying on direct-install or TestFlight-internal:
 - **Privacy policy URL** — required for submission; scrutiny is higher for apps requesting HealthKit access (health data can't be used for ads/tracking, purpose must be clearly disclosed in both the policy and the permission prompt copy).
 - App icon, screenshots, App Store description/metadata.
 
+## Phase 8 — Today Screen (spec addendum, decided 2026-09-11)
+
+The first of the phase 8 native screens (see GETTING_STARTED.md Phase 8).
+Brings the web app's most-used screen — `today.js` — natively, as three
+cards in one view.
+
+**In scope:**
+
+- **Workout rotation card**: shows the next-up workout (name, icon, "last
+  done X days ago"), a "Done ✓" button, and a "Log other activity…" flow
+  that can (a) log a *different* workout from the active list, (b) mark a
+  rest day with an optional freeform reason — remembered as quick-tap chips
+  for next time, or (c) log a free-text "other" activity — also remembered
+  as chips. Includes "Undo" for the most recent action taken today or
+  yesterday (matches web behavior, covers logging after midnight).
+- **Journal card**: intention / gratitude / one-thing fields, one entry per
+  day, edit-in-place. Includes the "you wrote something similar last week"
+  gratitude nudge before saving.
+- **Weight card**: the existing weight-entry functionality shown as a
+  compact card (today's value, or a "Log Weight" button) rather than its
+  own full screen — [WeightView.swift](Habits/Habits/WeightView.swift) stays
+  as-is for the calendar/history view Log will need later.
+- Respect the existing per-user `show_workout_card` / `show_journal_card` /
+  `show_weight_card` toggles (read-only here — the settings UI to change
+  them is a separate, not-yet-speced screen).
+- Read the active workout rotation from `workout_library` / `user_rotation`
+  if the user has customized it; otherwise fall back to the same default
+  5-workout list/rotation the web app hardcodes in `app.js`.
+
+**Data model** — new read/write access, all existing Supabase tables shared
+with the web app, no schema changes:
+
+```
+history        (id, user_id, type, date, advanced, note, sequence)
+state          (id, user_id, rotation_index, action_date)
+journal        (date, intention, gratitude, one_thing, user_id)
+                 -- unique on (date, user_id)
+workout_library (id, name, category, icon, is_global, created_by)
+user_rotation   (id, position, workout_id, user_id)
+```
+
+**Explicitly out of scope for this pass:**
+
+- Editing the workout rotation/library itself (add/remove/reorder
+  workouts) — that's a settings screen, not part of Today.
+- Log, Stats, and Journal-as-its-own-history-view — the remaining phase 8
+  steps, each gets its own spec addition when we get there.
+
+**Decided (2026-09-11):**
+
+1. **Undo window**: matches web behavior — an entry logged today or
+   yesterday can be undone (covers logging after midnight).
+2. **Rotation fallback**: mirrors the web app's hardcoded 5-workout default
+   list/rotation (`app.js`'s `WORKOUTS`/`ROTATION`) when the user has no
+   custom rotation in `user_rotation`.
+
 ## Later phases (not speced yet)
 
-If phase 1 goes well: Today, Log, Stats, and Journal as additive native
-screens, working toward full feature parity with the web app — at which
-point retiring the web app becomes a real option rather than a plan. Each
-of these would get its own short spec when you get there, same pattern as
-this one.
+Log, Stats, and Journal-as-its-own-screen remain as additive native
+screens after Today — working toward full feature parity with the web app,
+at which point retiring the web app becomes a real option rather than a
+plan. Each gets its own short spec addition when you get there, same
+pattern as Today above.

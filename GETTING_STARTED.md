@@ -15,6 +15,25 @@ Companion doc: [SPEC.md](./SPEC.md) covers *what* to build. This covers *how the
 
 ---
 
+## A note on GitHub pushes vs. App Store/TestFlight builds
+
+These come up constantly starting in Phase 2, so it's worth being explicit
+up front: they are three separate, independent actions. Nothing in this
+repo automatically triggers one from another.
+
+- **Commit** — saves a snapshot to your local git history, on your Mac only. Nobody else sees it.
+- **Push to GitHub** — uploads those commits to GitHub so they're backed up and (via a PR) mergeable into `main`. This is purely a code-storage/collaboration step — it does **not** build, install, or ship anything anywhere.
+- **A new App Store/TestFlight build** (Phase 7+) — a separate, manual step: archive the app in Xcode, upload to App Store Connect, so people *other than you*, or on a device *not cabled to your Mac*, can install it.
+
+When you're testing by running the app on your phone over a USB cable
+(Phase 3 onward), that's Xcode talking directly to your phone — GitHub
+isn't involved at all, pushed or not. Only bother cutting a new
+TestFlight/App Store build when you need one of the things only it
+provides: a tester without a cable to your Mac, someone other than you
+testing, or validating the release pipeline itself.
+
+---
+
 ## Phase 0 — Create the repo (do this first, before anything else)
 
 The rule of thumb: **create the GitHub repo before you create the Xcode
