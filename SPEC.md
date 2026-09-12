@@ -329,10 +329,78 @@ their own `TodayViewModel`/`WeightViewModel` instance) — a backfill made in
 Log won't be reflected in Stats until Stats is reloaded (pull-to-refresh,
 or switching tabs back).
 
+## Phase 8 — Settings Screen (spec addendum, decided 2026-09-12)
+
+Builds out the rest of `SettingsView.swift`, which since the Log addendum
+has only been a stub (HealthKit sync, the reminder toggle, Sign Out).
+Brings the web app's `settings.js` natively. Unlike Today/Log/Stats, this
+is big enough to span **three passes** rather than one PR, because one
+piece (onboarding) structurally depends on another (the rotation builder)
+that hasn't been built yet:
+
+1. **This pass**: Account, Today Tab toggles, Feedback, Account deletion
+   (below) — none of these depend on anything not already built.
+2. **Next pass**: Workout Sequence builder — reorder/add/remove workouts,
+   custom workouts, reset to a starter program. The biggest single piece
+   of `settings.js`; fully self-contained.
+3. **Then**: Onboarding/FTUX replay ("Tutorial") — in the web app this
+   reuses the same program-picker/rotation-builder screens
+   (`renderOnboardingStep`, `openCustomBuilderFromFtux`), so it's built
+   after pass 2 exists rather than duplicating that UI ahead of it.
+
+**In scope for this pass:**
+
+- **Account section**: signed-in email (read-only, from the session),
+  editable first/last name, and change password. Name and password are
+  Supabase Auth user metadata/credentials (`auth.updateUser`), **not** a
+  database table — matches the web app exactly, no schema involved.
+  Simplification from web: iOS uses always-editable fields with a single
+  Save button rather than the web's separate view/edit-mode toggle
+  (`settingsProfileEditing`) — standard native Settings-form pattern,
+  same end result.
+- **Today Tab toggles**: show/hide the Workout, Journal, and Weight cards
+  on Today — read-write here, backed by the existing `user_preferences`
+  table and the `UserPreferencesRow`/`UserPreferencesUpsertPayload` models
+  already defined in `TodayModels.swift` for Today's read-only display.
+- **Feedback**: web's version posts to a Netlify form, which is
+  Netlify-specific infra with no iOS equivalent. Replaced with a `mailto:`
+  link (pre-filled subject/body) rather than porting form-submission
+  infrastructure for what is, for a single-user app, just a note to
+  yourself.
+- **Account deletion**: mirrors what the web app *actually* does today,
+  not the theoretical ideal — the client's publishable key can't call
+  `auth.admin.deleteUser`, so the web app already falls back to: delete
+  the user's rows from `history`, `journal`, `weight`, `state`, and
+  `user_preferences`, then flag the account via `auth.updateUser` metadata
+  (`deletion_requested_at`/`_email`/`_name`), then sign out. Same fallback
+  here — a true Auth-user delete via Edge Function is still the
+  before-App-Store-submission item noted above, unchanged.
+- Existing HealthKit sync, reminder toggle, and Sign Out stay as-is.
+
+**Explicitly out of scope for this pass:**
+
+- Workout Sequence builder and Onboarding/FTUX (passes 2 and 3 above).
+- Web's "Sync" button (`syncAllData`) — that's cache-invalidation for the
+  web app's local storage cache, which the iOS app doesn't have (each
+  screen's view model fetches fresh from Supabase); no native equivalent
+  needed.
+- Real (non-fallback) account deletion — needs the server-side Edge
+  Function already flagged under "Before public App Store submission".
+
+**Data model** — no schema changes; reuses `user_preferences` (already
+modeled) plus Supabase Auth's built-in user metadata/password, and
+deletes rows (no new tables) from `history`/`journal`/`weight`/`state`/
+`user_preferences` on account deletion:
+
+```
+user_preferences (user_id, show_workout_card, show_journal_card, show_weight_card)
+-- + Supabase Auth: user.email, user.user_metadata.{first_name,last_name}, password
+```
+
 ## Later phases (not speced yet)
 
 Journal-as-its-own-screen remains as an additive native screen after
-Stats — working toward full feature parity with the web app, at which
-point retiring the web app becomes a real option rather than a plan. Gets
-its own short spec addition when you get there, same pattern as Today,
-Log, and Stats above.
+Stats and Settings — working toward full feature parity with the web app,
+at which point retiring the web app becomes a real option rather than a
+plan. Gets its own short spec addition when you get there, same pattern
+as Today, Log, Stats, and Settings above.
