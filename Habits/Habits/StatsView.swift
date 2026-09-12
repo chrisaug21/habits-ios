@@ -54,11 +54,13 @@ struct StatsView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
                 await viewModel.loadAll()
+                selectDefaultWeightPoint()
             }
             .task {
                 await viewModel.loadAll()
+                selectDefaultWeightPoint()
             }
-            .onChange(of: viewModel.range) { selectedDateLabel = nil }
+            .onChange(of: viewModel.range) { selectDefaultWeightPoint() }
             .overlay {
                 if viewModel.isLoading && viewModel.history.isEmpty {
                     ProgressView()
@@ -299,9 +301,10 @@ struct StatsView: View {
                             .tracking(0.6)
                             .foregroundStyle(HabitsColor.textSecondary)
                         Text(point.dateLabel)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13, weight: .bold).monospacedDigit())
                             .foregroundStyle(HabitsColor.textPrimary)
                     }
+                    .frame(minWidth: 56, alignment: .leading)
                     weightStat("Weight", point.raw, color: HabitsColor.coral)
                     weightStat("7-day avg", point.rollingAverage, color: HabitsColor.accent)
                     weightStat("Trend", point.trend, color: HabitsColor.textPrimary)
@@ -320,9 +323,12 @@ struct StatsView: View {
                 .tracking(0.6)
                 .foregroundStyle(HabitsColor.textSecondary)
             Text(formattedWeight(value))
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 13, weight: .bold).monospacedDigit())
                 .foregroundStyle(color)
         }
+        // Fixed width so the row doesn't shift when a value's digit count
+        // changes (e.g. "151 lbs" vs "153.6 lbs").
+        .frame(minWidth: 68, alignment: .leading)
     }
 
     private func formattedWeight(_ value: Double) -> String {
@@ -332,6 +338,12 @@ struct StatsView: View {
     private var selectedWeightPoint: WeightChartPoint? {
         guard let selectedDateLabel else { return nil }
         return viewModel.weightChartPoints.first { $0.dateLabel == selectedDateLabel }
+    }
+
+    /// Shows the most recent day's numbers up front — the most useful
+    /// reading at a glance — rather than making the user tap first.
+    private func selectDefaultWeightPoint() {
+        selectedDateLabel = viewModel.weightChartPoints.last?.dateLabel
     }
 
     private var weightChart: some View {
@@ -409,13 +421,22 @@ struct StatsView: View {
         }
     }
 
-    /// Picks ~5 evenly-spaced labels to show, mirroring Chart.js's
+    /// Picks up to 5 evenly-spaced labels to show, mirroring Chart.js's
     /// `maxTicksLimit: 5` — a categorical axis doesn't support `.stride`,
-    /// so this is done by hand.
+    /// so this is done by hand. Divides the range into (picks + 1) equal
+    /// segments and only takes the *interior* boundaries, so every pick
+    /// keeps a full segment's worth of margin from both edges — a single
+    /// index of margin wasn't enough for larger datasets, where that
+    /// still landed close enough to the edge for the label to get
+    /// truncated; better to leave a visible gap than show a clipped date.
     private func xAxisTickLabels(_ points: [WeightChartPoint]) -> [String] {
         let labels = points.map(\.dateLabel)
-        guard labels.count > 5 else { return labels }
-        let step = max(1, labels.count / 5)
-        return stride(from: 0, to: labels.count, by: step).map { labels[$0] }
+        guard labels.count > 2 else { return labels }
+        let picks = min(5, labels.count - 2)
+        guard picks > 0 else { return [] }
+        return (1...picks).map { i in
+            let idx = Int((Double(i) * Double(labels.count - 1) / Double(picks + 1)).rounded())
+            return labels[idx]
+        }
     }
 }
