@@ -45,7 +45,7 @@ rediscover the layout.
 The Xcode project has two version fields, both in the `Habits` target →
 **General** tab → **Identity** section:
 
-- **Build number** (`CURRENT_PROJECT_VERSION`, currently `9`) — bump by 1
+- **Build number** (`CURRENT_PROJECT_VERSION`, currently `10`) — bump by 1
   before every push that changes app behavior. No judgment call needed:
   always increment, same discipline as the web app's `VERSION` constant
   (global CLAUDE.md's version discipline rule). Apple also requires every

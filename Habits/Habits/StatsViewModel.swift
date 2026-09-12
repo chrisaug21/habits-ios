@@ -53,6 +53,14 @@ struct StatsOtherEntry: Identifiable {
 
 struct WeightChartPoint: Identifiable {
     let date: Date
+    /// Short "Sep 11"-style label. Used as the chart's x-axis *category*
+    /// rather than plotting `date` on a real time scale — matches the web
+    /// app's Chart.js config, which plots against evenly-spaced label
+    /// strings (a category axis), not real calendar gaps. That's why the
+    /// web line stays smooth even when entries are gappy: an interpolated
+    /// curve over uneven real-world spacing (a true date axis) can loop or
+    /// overshoot between distant points, which a real-time x-axis would.
+    let dateLabel: String
     let raw: Double
     let rollingAverage: Double
     let trend: Double
@@ -264,8 +272,10 @@ final class StatsViewModel: ObservableObject {
         let trend = Self.computeRollingSeries(dates: dates, values: rollingAverages)
 
         return rows.indices.map { idx in
-            WeightChartPoint(
-                date: Self.localDateFormatter.date(from: rows[idx].date) ?? Date(),
+            let date = Self.localDateFormatter.date(from: rows[idx].date) ?? Date()
+            return WeightChartPoint(
+                date: date,
+                dateLabel: date.formatted(.dateTime.month(.abbreviated).day()),
                 raw: rawValues[idx],
                 rollingAverage: rollingAverages[idx],
                 trend: trend[idx]

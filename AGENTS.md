@@ -39,7 +39,7 @@ TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 
 ## Versioning
 Two fields, both in the `Habits` target → General tab → Identity section:
 
-- Build number (`CURRENT_PROJECT_VERSION`, currently `9`) — bump by 1
+- Build number (`CURRENT_PROJECT_VERSION`, currently `10`) — bump by 1
   before every push that changes app behavior. Always increment, no
   judgment call, same discipline as the web app's `VERSION` constant. Apple
   also requires a unique build number per TestFlight/App Store upload.

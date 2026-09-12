@@ -13,6 +13,7 @@ import Charts
 struct StatsView: View {
     @StateObject private var viewModel: StatsViewModel
     @State private var isOtherExpanded = false
+    @State private var selectedDateLabel: String?
 
     init(userID: UUID) {
         _viewModel = StateObject(wrappedValue: StatsViewModel(userID: userID))
@@ -57,6 +58,7 @@ struct StatsView: View {
             .task {
                 await viewModel.loadAll()
             }
+            .onChange(of: viewModel.range) { selectedDateLabel = nil }
             .overlay {
                 if viewModel.isLoading && viewModel.history.isEmpty {
                     ProgressView()
@@ -270,7 +272,7 @@ struct StatsView: View {
 
     private var weightChartCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionLabel("Weight Trend")
+            weightChartHeader
             if viewModel.weightChartPoints.isEmpty {
                 Text("Not enough weight data yet for this range.")
                     .font(.system(size: 14))
@@ -284,6 +286,54 @@ struct StatsView: View {
         .habitsCard()
     }
 
+    /// Swaps to the scrubbed day's readout while a finger is down on the
+    /// chart (see `weightChart`'s `chartOverlay`), matching the web app's
+    /// hover tooltip — reverts to the plain section label on release.
+    private var weightChartHeader: some View {
+        Group {
+            if let point = selectedWeightPoint {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("DATE")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.6)
+                            .foregroundStyle(HabitsColor.textSecondary)
+                        Text(point.dateLabel)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(HabitsColor.textPrimary)
+                    }
+                    weightStat("Weight", point.raw, color: HabitsColor.coral)
+                    weightStat("7-day avg", point.rollingAverage, color: HabitsColor.accent)
+                    weightStat("Trend", point.trend, color: HabitsColor.textPrimary)
+                }
+            } else {
+                sectionLabel("Weight Trend")
+            }
+        }
+        .animation(.easeOut(duration: 0.12), value: selectedDateLabel)
+    }
+
+    private func weightStat(_ title: String, _ value: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .tracking(0.6)
+                .foregroundStyle(HabitsColor.textSecondary)
+            Text(formattedWeight(value))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(color)
+        }
+    }
+
+    private func formattedWeight(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1))) + " lbs"
+    }
+
+    private var selectedWeightPoint: WeightChartPoint? {
+        guard let selectedDateLabel else { return nil }
+        return viewModel.weightChartPoints.first { $0.dateLabel == selectedDateLabel }
+    }
+
     private var weightChart: some View {
         let points = viewModel.weightChartPoints
         let allValues = points.flatMap { [$0.raw, $0.rollingAverage, $0.trend] }
@@ -293,25 +343,38 @@ struct StatsView: View {
         let buffer = max(1.5, spread * 0.12)
 
         return Chart(points) { point in
-            PointMark(x: .value("Date", point.date, unit: .day), y: .value("Weight", point.raw))
+            PointMark(x: .value("Date", point.dateLabel), y: .value("Weight", point.raw))
                 .foregroundStyle(HabitsColor.coral)
                 .symbolSize(24)
-            LineMark(x: .value("Date", point.date, unit: .day), y: .value("7-day average", point.rollingAverage))
-                .foregroundStyle(HabitsColor.accent)
+            // `foregroundStyle(by:)` + `chartForegroundStyleScale` below is
+            // the pattern Swift Charts needs to treat these as two distinct
+            // lines — distinguishing them only by the y-value's label (as
+            // two plain `.foregroundStyle(Color)` LineMarks) silently drops
+            // one of them instead of drawing both.
+            LineMark(x: .value("Date", point.dateLabel), y: .value("Value", point.rollingAverage))
+                .foregroundStyle(by: .value("Series", "7-day average"))
                 .lineStyle(StrokeStyle(lineWidth: 2.5))
-                .interpolationMethod(.catmullRom)
-            LineMark(x: .value("Date", point.date, unit: .day), y: .value("Trend", point.trend))
-                .foregroundStyle(HabitsColor.textPrimary)
+                .interpolationMethod(.monotone)
+            LineMark(x: .value("Date", point.dateLabel), y: .value("Value", point.trend))
+                .foregroundStyle(by: .value("Series", "Trend"))
                 .lineStyle(StrokeStyle(lineWidth: 2))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.monotone)
+            if point.dateLabel == selectedDateLabel {
+                RuleMark(x: .value("Date", point.dateLabel))
+                    .foregroundStyle(HabitsColor.textSecondary.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            }
         }
+        .chartForegroundStyleScale([
+            "7-day average": HabitsColor.accent,
+            "Trend": HabitsColor.textPrimary,
+        ])
         .chartYScale(domain: (minValue - buffer)...(maxValue + buffer))
         .chartLegend(.hidden)
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+            AxisMarks(values: xAxisTickLabels(points)) { _ in
                 AxisGridLine().foregroundStyle(.clear)
-                AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                    .foregroundStyle(HabitsColor.textSecondary)
+                AxisValueLabel().foregroundStyle(HabitsColor.textSecondary)
             }
         }
         .chartYAxis {
@@ -321,5 +384,38 @@ struct StatsView: View {
             }
         }
         .frame(height: 200)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        // `minimumDistance: 0` makes a plain tap register as
+                        // a zero-length drag, so this also handles scrubbing
+                        // across days without lifting a finger. Selection
+                        // persists after release (tap a different day, or
+                        // switch ranges, to change/clear it) rather than
+                        // hiding on touch-up, matching "tap to see a day."
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let originX = geometry[proxy.plotAreaFrame].origin.x
+                                let x = value.location.x - originX
+                                if let label: String = proxy.value(atX: x) {
+                                    selectedDateLabel = label
+                                }
+                            }
+                    )
+            }
+        }
+    }
+
+    /// Picks ~5 evenly-spaced labels to show, mirroring Chart.js's
+    /// `maxTicksLimit: 5` — a categorical axis doesn't support `.stride`,
+    /// so this is done by hand.
+    private func xAxisTickLabels(_ points: [WeightChartPoint]) -> [String] {
+        let labels = points.map(\.dateLabel)
+        guard labels.count > 5 else { return labels }
+        let step = max(1, labels.count / 5)
+        return stride(from: 0, to: labels.count, by: step).map { labels[$0] }
     }
 }
