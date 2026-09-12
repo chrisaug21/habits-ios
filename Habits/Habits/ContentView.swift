@@ -29,7 +29,12 @@ private struct SignedInView: View {
 
     var body: some View {
         if let userID = auth.session?.user.id {
-            WeightView(userID: userID)
+            TabView {
+                TodayView(userID: userID)
+                    .tabItem { Label("Today", systemImage: "sun.max.fill") }
+                WeightView(userID: userID)
+                    .tabItem { Label("Weight", systemImage: "scalemass.fill") }
+            }
         }
     }
 }
