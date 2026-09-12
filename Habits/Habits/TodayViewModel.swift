@@ -345,45 +345,57 @@ final class TodayViewModel: ObservableObject {
         let isRotationWorkout = rotationIDs.contains(type)
         let hasLaterEntries = history.contains { $0.date > date && rotationIDs.contains($0.type) }
         let shouldAdvance = isRotationWorkout && !hasLaterEntries
-        let count = max(activeRotation.count, 1)
 
         do {
             if let existing, let existingID = existing.id {
-                let wasAdvanced = existing.advanced
-                try await SupabaseManager.client
-                    .from("history")
-                    .update(HistoryUpdatePayload(type: type, note: note, advanced: shouldAdvance))
-                    .eq("id", value: existingID)
-                    .execute()
-
-                if let idx = history.firstIndex(where: { $0.id == existingID }) {
-                    history[idx] = HistoryRow(id: existingID, type: type, date: existing.date, advanced: shouldAdvance, note: note, sequence: existing.sequence)
-                }
-
-                if shouldAdvance && !wasAdvanced {
-                    rotationIndex = (rotationIndex + 1) % count
-                } else if !shouldAdvance && wasAdvanced {
-                    rotationIndex = ((rotationIndex - 1) % count + count) % count
-                }
+                try await updateBackfillEntry(existing: existing, existingID: existingID, type: type, note: note, shouldAdvance: shouldAdvance)
             } else {
-                try await insertHistoryEntry(type: type, date: date, advanced: shouldAdvance, note: note)
-                if shouldAdvance {
-                    rotationIndex = (rotationIndex + 1) % count
-                }
+                try await insertBackfillEntry(date: date, type: type, note: note, shouldAdvance: shouldAdvance)
             }
 
             try await updateState(rotationIndex: rotationIndex, actionDate: actionDate)
-
-            if type == "other", let note, !note.isEmpty {
-                RecentChipsStore.remember(note, in: RecentChipsStore.otherActivitiesKey)
-            }
-            if type == "off", let note, !note.isEmpty {
-                RecentChipsStore.remember(note, in: RecentChipsStore.skipReasonsKey)
-            }
+            rememberChip(type: type, note: note)
             return true
         } catch {
             errorMessage = "Could not save — check your connection"
             return false
+        }
+    }
+
+    private func updateBackfillEntry(existing: HistoryRow, existingID: Int, type: String, note: String?, shouldAdvance: Bool) async throws {
+        let wasAdvanced = existing.advanced
+        let count = max(activeRotation.count, 1)
+        try await SupabaseManager.client
+            .from("history")
+            .update(HistoryUpdatePayload(type: type, note: note, advanced: shouldAdvance))
+            .eq("id", value: existingID)
+            .execute()
+
+        if let idx = history.firstIndex(where: { $0.id == existingID }) {
+            history[idx] = HistoryRow(id: existingID, type: type, date: existing.date, advanced: shouldAdvance, note: note, sequence: existing.sequence)
+        }
+
+        if shouldAdvance && !wasAdvanced {
+            rotationIndex = (rotationIndex + 1) % count
+        } else if !shouldAdvance && wasAdvanced {
+            rotationIndex = ((rotationIndex - 1) % count + count) % count
+        }
+    }
+
+    private func insertBackfillEntry(date: String, type: String, note: String?, shouldAdvance: Bool) async throws {
+        try await insertHistoryEntry(type: type, date: date, advanced: shouldAdvance, note: note)
+        if shouldAdvance {
+            let count = max(activeRotation.count, 1)
+            rotationIndex = (rotationIndex + 1) % count
+        }
+    }
+
+    private func rememberChip(type: String, note: String?) {
+        if type == "other", let note, !note.isEmpty {
+            RecentChipsStore.remember(note, in: RecentChipsStore.otherActivitiesKey)
+        }
+        if type == "off", let note, !note.isEmpty {
+            RecentChipsStore.remember(note, in: RecentChipsStore.skipReasonsKey)
         }
     }
 

@@ -186,7 +186,7 @@ struct LogView: View {
                 ForEach(daysRange, id: \.self) { day in
                     let date = cal.date(byAdding: .day, value: day - 1, to: firstOfMonth) ?? firstOfMonth
                     let ds = Self.dateFormatter.string(from: date)
-                    dayCell(
+                    dayCell(DayCellInfo(
                         ds: ds,
                         day: day,
                         isToday: ds == today,
@@ -195,58 +195,77 @@ struct LogView: View {
                         projected: projMap[ds],
                         hasJournal: journalDates.contains(ds),
                         hasWeight: weightDates.contains(ds)
-                    )
+                    ))
                 }
             }
         )
     }
 
+    /// Groups `dayCell`'s inputs into one value instead of eight separate
+    /// parameters.
+    private struct DayCellInfo {
+        let ds: String
+        let day: Int
+        let isToday: Bool
+        let isPast: Bool
+        let histEntry: HistoryRow?
+        let projected: WorkoutDefinition?
+        let hasJournal: Bool
+        let hasWeight: Bool
+    }
+
+    private struct DayCellVisual {
+        let icon: String
+        let tint: Color
+        let filled: Bool
+    }
+
     @ViewBuilder
-    private func dayCell(ds: String, day: Int, isToday: Bool, isPast: Bool, histEntry: HistoryRow?, projected: WorkoutDefinition?, hasJournal: Bool, hasWeight: Bool) -> some View {
-        let (icon, tint, filled): (String, Color, Bool) = {
-            if let histEntry {
-                if histEntry.type == "off" { return ("moon.fill", HabitsColor.amber, true) }
-                if histEntry.type == "other" { return ("bolt.fill", HabitsColor.teal, true) }
+    private func dayCell(_ info: DayCellInfo) -> some View {
+        let visual: DayCellVisual = {
+            if let histEntry = info.histEntry {
+                if histEntry.type == "off" { return DayCellVisual(icon: "moon.fill", tint: HabitsColor.amber, filled: true) }
+                if histEntry.type == "other" { return DayCellVisual(icon: "bolt.fill", tint: HabitsColor.teal, filled: true) }
                 let workout = viewModel.workout(byID: histEntry.type)
-                return (workout?.icon ?? "dumbbell.fill", HabitsColor.accent, true)
-            } else if let projected {
-                return (projected.icon, HabitsColor.accent, false)
+                return DayCellVisual(icon: workout?.icon ?? "dumbbell.fill", tint: HabitsColor.accent, filled: true)
+            } else if let projected = info.projected {
+                return DayCellVisual(icon: projected.icon, tint: HabitsColor.accent, filled: false)
             }
-            return ("", HabitsColor.textDim, false)
+            return DayCellVisual(icon: "", tint: HabitsColor.textDim, filled: false)
         }()
 
         VStack(spacing: 3) {
             Group {
-                if icon.isEmpty {
+                if visual.icon.isEmpty {
                     Color.clear
                 } else {
-                    Image(systemName: icon)
-                        .foregroundStyle(filled ? tint : tint.opacity(0.4))
+                    Image(systemName: visual.icon)
+                        .foregroundStyle(visual.filled ? visual.tint : visual.tint.opacity(0.4))
                 }
             }
             .font(.system(size: 13))
             .frame(height: 15)
 
-            Text("\(day)")
-                .font(.system(size: 12, weight: isToday ? .bold : .regular))
-                .foregroundStyle(isToday ? HabitsColor.textPrimary : (isPast ? HabitsColor.textSecondary : HabitsColor.textDim))
+            Text("\(info.day)")
+                .font(.system(size: 12, weight: info.isToday ? .bold : .regular))
+                .foregroundStyle(info.isToday ? HabitsColor.textPrimary : (info.isPast ? HabitsColor.textSecondary : HabitsColor.textDim))
 
             HStack(spacing: 2) {
-                if hasJournal { Circle().fill(HabitsColor.green).frame(width: 4, height: 4) }
-                if hasWeight { Circle().fill(HabitsColor.coral).frame(width: 4, height: 4) }
+                if info.hasJournal { Circle().fill(HabitsColor.green).frame(width: 4, height: 4) }
+                if info.hasWeight { Circle().fill(HabitsColor.coral).frame(width: 4, height: 4) }
             }
             .frame(height: 5)
         }
         .frame(maxWidth: .infinity, minHeight: 48)
-        .background(isToday ? HabitsColor.accent.opacity(0.12) : Color.clear)
+        .background(info.isToday ? HabitsColor.accent.opacity(0.12) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isToday ? HabitsColor.borderActive.opacity(0.6) : Color.clear, lineWidth: 1)
+                .stroke(info.isToday ? HabitsColor.borderActive.opacity(0.6) : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            if isPast { backfillTarget = BackfillTarget(date: ds) }
+            if info.isPast { backfillTarget = BackfillTarget(date: info.ds) }
         }
     }
 
@@ -534,20 +553,26 @@ private struct BackfillSheet: View {
         }
     }
 
-    private var exerciseDisplay: (icon: String, color: Color, name: String) {
+    private struct ExerciseDisplay {
+        let icon: String
+        let color: Color
+        let name: String
+    }
+
+    private var exerciseDisplay: ExerciseDisplay {
         guard let entry = existingEntry else {
-            return ("dumbbell.fill", HabitsColor.textDim, "No exercise logged")
+            return ExerciseDisplay(icon: "dumbbell.fill", color: HabitsColor.textDim, name: "No exercise logged")
         }
         if entry.type == "off" {
             let hasNote = !(entry.note ?? "").isEmpty
-            return ("moon.fill", HabitsColor.amber, hasNote ? entry.note! : "Rest Day")
+            return ExerciseDisplay(icon: "moon.fill", color: HabitsColor.amber, name: hasNote ? entry.note! : "Rest Day")
         }
         if entry.type == "other" {
             let hasNote = !(entry.note ?? "").isEmpty
-            return ("bolt.fill", HabitsColor.teal, hasNote ? entry.note! : "Other Activity")
+            return ExerciseDisplay(icon: "bolt.fill", color: HabitsColor.teal, name: hasNote ? entry.note! : "Other Activity")
         }
         let matched = workout(entry.type)
-        return (matched?.icon ?? "dumbbell.fill", HabitsColor.accent, matched?.name ?? entry.type)
+        return ExerciseDisplay(icon: matched?.icon ?? "dumbbell.fill", color: HabitsColor.accent, name: matched?.name ?? entry.type)
     }
 
     private var exerciseSummary: some View {

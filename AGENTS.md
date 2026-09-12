@@ -37,7 +37,7 @@ TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 
 ## Versioning
 Two fields, both in the `Habits` target → General tab → Identity section:
 
-- Build number (`CURRENT_PROJECT_VERSION`, currently `7`) — bump by 1
+- Build number (`CURRENT_PROJECT_VERSION`, currently `8`) — bump by 1
   before every push that changes app behavior. Always increment, no
   judgment call, same discipline as the web app's `VERSION` constant. Apple
   also requires a unique build number per TestFlight/App Store upload.
@@ -49,7 +49,7 @@ Two fields, both in the `Habits` target → General tab → Identity section:
 
 ### On-screen version footer
 Every screen shows a small `v{MARKETING_VERSION}.{BUILD}` readout at the
-bottom (e.g. `v1.0.7`), via `HabitsVersionFooter` in `Theme.swift`. Mirrors
+bottom (e.g. `v1.0.8`), via `HabitsVersionFooter` in `Theme.swift`. Mirrors
 the web app's x.x.x look while staying tied to the two Xcode fields above
 instead of a third, separately-maintained version string: the first two
 components are `MARKETING_VERSION` as-is, the third is the build number.
