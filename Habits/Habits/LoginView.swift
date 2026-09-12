@@ -13,7 +13,7 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Habits")
+            Text("Ondoloop")
                 .font(.largeTitle.bold())
 
             TextField("Email", text: $email)

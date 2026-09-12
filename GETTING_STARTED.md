@@ -195,8 +195,9 @@ the web app — not a fixed date.
 ## Phase 9 — Branding consistency (before going public)
 
 - **[You + Claude Design]** Redo the icon/wordmark artwork to say
-  "Habitude Loop" (or whatever name you land on), replacing the placeholder
-  PNG from Phase 7.
+  "Ondoloop" (final name, tagline "Ondoloop: The Habits App"; see SPEC.md's
+  Naming section), replacing the placeholder PNG from Phase 7. The old
+  H-based monogram no longer fits and needs a new direction.
 - No Xcode-side renaming needed beyond the icon image itself — the internal
   product name, bundle ID (`com.chrisaug.Habits`), and target name can all
   stay "Habits" forever. Those are technical identifiers nobody but you

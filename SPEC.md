@@ -2,6 +2,37 @@
 
 Companion doc: [GETTING_STARTED.md](./GETTING_STARTED.md) covers *how* to build this, step by step. This covers *what* to build.
 
+## Naming: this product is being renamed to Ondoloop
+
+The iOS app's public name is now **Ondoloop** (App Store subtitle: "Ondoloop:
+The Habits App"), replacing the earlier working name "Habitude Loop." This
+is a name change only, not a rescope — everything else in this spec still
+applies.
+
+Internal identifiers (Xcode target name, bundle ID `com.chrisaug.Habits`,
+this repo's name `habits-ios`) are staying "Habits" — those are technical,
+nobody-but-you-sees-them identifiers, unrelated to the public-facing name.
+
+What's done so far: the iOS app's `CFBundleDisplayName`, in-app title text,
+and HealthKit usage-description strings now say "Ondoloop."
+
+What's **not** done, and may need to follow depending on how far this rename
+goes:
+- The **web app** (this doc's "Habits (web)" references below) is still
+  branded "Habits" — its UI copy, page titles, and metadata haven't changed.
+- The web app currently lives at **habits.chrisaug.com**. A rename would
+  mean deciding whether that subdomain moves to the new **ondoloop.com**
+  domain (not yet purchased) or stays as a redirect target.
+- **ondoloop.com** needs to be purchased, and DNS/redirect behavior decided
+  (e.g. does habits.chrisaug.com 301-redirect to ondoloop.com, or do both
+  stay live pointing at the same app?).
+- The logo assets in `Habits logo design/` (wordmark, lockups, app icon) all
+  say "Habits" and need to be redone. The monogram specifically was designed
+  around the letter H and no longer fits an "Ondoloop" identity — it needs a
+  new direction, not just a re-label.
+- Any other "Habits" references outside this repo (App Store Connect
+  listing copy, TestFlight metadata, marketing pages, etc.) once they exist.
+
 ## Goal
 
 A native iOS app for the existing Habits product that does three things a

@@ -50,7 +50,7 @@ struct TodayView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle("Habits")
+            .navigationTitle("Ondoloop")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
