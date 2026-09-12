@@ -131,7 +131,9 @@ final class StatsViewModel: ObservableObject {
             }
             self.weightEntries = try await weightRows
         } catch {
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
