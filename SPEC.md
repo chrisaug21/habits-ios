@@ -157,8 +157,10 @@ cards in one view.
   gratitude nudge before saving.
 - **Weight card**: the existing weight-entry functionality shown as a
   compact card (today's value, or a "Log Weight" button) rather than its
-  own full screen — [WeightView.swift](Habits/Habits/WeightView.swift) stays
-  as-is for the calendar/history view Log will need later.
+  own full screen. *(Updated by the Log addendum below: the standalone
+  Weight tab this card's logic originally lived in has since become
+  [SettingsView.swift](Habits/Habits/SettingsView.swift); weight history
+  moved to Log's calendar.)*
 - Respect the existing per-user `show_workout_card` / `show_journal_card` /
   `show_weight_card` toggles (read-only here — the settings UI to change
   them is a separate, not-yet-speced screen).
@@ -193,10 +195,144 @@ user_rotation   (id, position, workout_id, user_id)
    list/rotation (`app.js`'s `WORKOUTS`/`ROTATION`) when the user has no
    custom rotation in `user_rotation`.
 
+## Phase 8 — Log Screen (spec addendum, decided 2026-09-12)
+
+The second phase 8 native screen. Brings the web app's `log.js` natively —
+calendar with backfill, plus its List and Schedule sub-views — as a new
+third tab.
+
+**In scope:**
+
+- **Tab bar change**: adds `LogView` as a third tab (Today, Log, Settings).
+  The old standalone Weight tab is retired — see "Weight tab retirement"
+  below.
+- **Calendar sub-view**: month grid, prev/next navigation. Past/today days
+  with a logged entry show its icon (workout/rest/other); future (and
+  not-yet-logged today) days show the *projected* rotation workout at
+  reduced opacity, computed the same way as the web app's
+  `buildProjectionMap` — walk forward from today assigning the next
+  rotation workout to every day without a history entry, without mutating
+  the stored rotation index. Small dots mark days with a journal entry or a
+  weight entry. Tapping a **past** day (not today, not future) opens the
+  backfill sheet.
+- **List sub-view**: all history entries, reverse chronological. Read-only,
+  no tap-to-backfill — matches the web app (only calendar cells are
+  interactive there).
+- **Schedule sub-view**: next 14 days' projected rotation workouts, read-only.
+- **Backfill sheet**: for a selected past date —
+  - Read-only summary: current exercise entry (or "No exercise logged"),
+    current weight (or "No weight logged"), and journal fields if any exist
+    for that date (**read-only** — no journal editing here, matches Today's
+    journal scope of "today only").
+  - "Add/Edit Exercise" switches to an option list (active rotation
+    workouts + Rest Day + Other Activity, single flat list matching the web
+    app's `getBackfillOptions()`) with an optional note field (reusing the
+    same recent-chips store as Today's skip/other flows) and Save/Cancel.
+  - "Add/Edit Weight" switches to a numeric entry field and Save/Cancel,
+    upserting `weight` for that specific date (`date,user_id` unique
+    constraint already handles edit-vs-insert).
+  - Saving an exercise re-runs the same rotation-advance/rewind math as the
+    web app's `confirmBackfill` (see `TodayViewModel.backfillLogEntry`):
+    only advances the rotation index if this is the most recent
+    rotation-relevant entry, and adjusts the index when editing a past
+    entry changes whether it was rotation-advancing.
+
+**Weight tab retirement (decided 2026-09-12):** now that weight history is
+visible in Log's calendar and daily weight entry lives on Today's weight
+card, the old Weight tab's "Recent" list and "Add Weight Manually" button
+are removed outright (no replacement in this pass — they return, in a
+different form, when Stats is built next). What's left of that tab
+(HealthKit sync, the daily reminder toggle, Sign Out) becomes a stubbed-out
+**Settings** tab (`SettingsView.swift`) — a placeholder until Settings gets
+its own real spec pass.
+
+**Data model** — same tables as Today, no schema changes:
+
+```
+history        (id, user_id, type, date, advanced, note, sequence)
+state          (id, user_id, rotation_index, action_date)
+journal        (date, intention, gratitude, one_thing, user_id)
+workout_library (id, name, category, icon, is_global, created_by)
+user_rotation   (id, position, workout_id, user_id)
+weight          (date, value_lbs, user_id) -- unique on (date, user_id)
+```
+
+**Explicitly out of scope for this pass:**
+
+- Editing journal entries from the backfill sheet (display only).
+- A real Settings screen (notifications preferences beyond the one
+  reminder toggle, account management, etc.) — today's Settings tab is
+  intentionally a stub.
+- Stats and Journal-as-its-own-history-view — the remaining phase 8 steps.
+
+**Known limitation carried over from Today:** Log and Today each own an
+independent `TodayViewModel`/`WeightViewModel` instance (same pattern as
+the old Today/Weight split) — a backfill edit made in Log won't be visible
+in Today until Today's tab is reloaded (pull-to-refresh, or relaunch).
+Fixing this would mean sharing state across tabs, which is a bigger
+architectural change than this pass — worth revisiting if it's annoying in
+daily use.
+
+## Phase 8 — Stats Screen (spec addendum, decided 2026-09-12)
+
+The third phase 8 native screen. Brings the web app's `stats.js` natively
+as a new fourth tab, read-only (no writes at all in this pass).
+
+**In scope:**
+
+- **Tab bar change**: adds `StatsView` as a new tab, inserted between Log
+  and Settings (Today, Log, Stats, Settings).
+- **Range toggle**: Last 7 Days / Last 30 Days / All Time, defaults to 30
+  days — matches the web app's default.
+- **Total Workouts card**: count of history entries in the selected range,
+  excluding rest days (`type == "off"`).
+- **Streaks card**: current streak and longest streak, both computed over
+  *all* history regardless of the range toggle — matches the web app
+  (`computeCurrentStreak`/`computeLongestStreak` in `stats.js` don't take
+  the range into account, only the Total Workouts / by-type breakdown do).
+- **Consistency card**: distinct workout days ÷ days-in-range, as a
+  percentage. For "All Time", the denominator is days since the first-ever
+  history entry (inclusive) rather than a fixed number.
+- **Workouts by Type card**: a bar per active rotation workout (name, icon,
+  "last done" pill using the same color rules as Today/Log, count/bar
+  scaled to the largest bar), plus an expandable "Other" row listing
+  one-off activities (date + note) for anything outside the active
+  rotation — matches the web app's collapsible `#stats-other-row`.
+- **Weight trend chart**: raw weight points, a 7-day rolling average line,
+  and a smoothed trend line (a rolling average of the rolling average) —
+  same math as `computeRollingSeries` in `app.js`, filtered to the selected
+  range. Built with Apple's native Swift Charts framework (`import Charts`)
+  — first-party, ships with iOS, not a new third-party dependency. Shows an
+  empty state below 2 data points, matching the web app.
+- Reads the active workout rotation the same way Today/Log do:
+  `user_rotation`/`workout_library` if customized, otherwise the hardcoded
+  default 5-workout list.
+
+**Data model** — read-only, same tables as Today/Log, no schema changes,
+no new writes:
+
+```
+history        (id, user_id, type, date, advanced, note, sequence)
+workout_library (id, name, category, icon, is_global, created_by)
+user_rotation   (id, position, workout_id, user_id)
+weight          (date, value_lbs, user_id)
+```
+
+**Explicitly out of scope for this pass:**
+
+- Any editing — Stats is purely a read-only summary view.
+- Journal-as-its-own-history-view — the remaining phase 8 step.
+
+**Known limitation carried over from Today/Log:** Stats owns its own
+independent data fetch (same pattern as Today/Log/Settings each owning
+their own `TodayViewModel`/`WeightViewModel` instance) — a backfill made in
+Log won't be reflected in Stats until Stats is reloaded (pull-to-refresh,
+or switching tabs back).
+
 ## Later phases (not speced yet)
 
-Log, Stats, and Journal-as-its-own-screen remain as additive native
-screens after Today — working toward full feature parity with the web app,
-at which point retiring the web app becomes a real option rather than a
-plan. Each gets its own short spec addition when you get there, same
-pattern as Today above.
+Journal-as-its-own-screen remains as an additive native screen after
+Stats — working toward full feature parity with the web app, at which
+point retiring the web app becomes a real option rather than a plan. Gets
+its own short spec addition when you get there, same pattern as Today,
+Log, and Stats above.
