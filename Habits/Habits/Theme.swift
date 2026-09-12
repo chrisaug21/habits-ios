@@ -63,6 +63,8 @@ struct HabitsPrimaryButtonStyle: ButtonStyle {
 }
 
 /// "Log activity" / "Undo" / "Edit" style — outlined ghost button.
+/// Uses `borderActive` rather than the dim card-outline `border` color —
+/// at `border`'s low contrast these read as barely-there against surface2.
 struct HabitsGhostButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -78,7 +80,7 @@ struct HabitsGhostButtonStyle: ButtonStyle {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(HabitsColor.border, lineWidth: 1)
+                    .stroke(HabitsColor.borderActive.opacity(0.7), lineWidth: 1.25)
             )
             .opacity(isEnabled ? 1 : 0.35)
     }
@@ -100,19 +102,101 @@ struct HabitsChipButtonStyle: ButtonStyle {
     }
 }
 
-/// Small rounded status pill (e.g. "Last done 3d ago").
+/// Urgency tone for a "last done" pill, mirroring `lastDoneBadge` in the
+/// web app's shared.js: 0 days is green, 1-3 green, 4-7 amber, 8+ or never red.
+enum HabitsPillTone {
+    case green, amber, red
+
+    static func forDaysSince(_ days: Int?) -> HabitsPillTone {
+        guard let days else { return .red }
+        if days >= 8 { return .red }
+        if days >= 4 { return .amber }
+        return .green
+    }
+
+    var foreground: Color {
+        switch self {
+        case .green: return HabitsColor.green
+        case .amber: return HabitsColor.amber
+        case .red: return HabitsColor.red
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .green: return HabitsColor.green.opacity(0.14)
+        case .amber: return HabitsColor.amber.opacity(0.14)
+        case .red: return HabitsColor.red.opacity(0.16)
+        }
+    }
+
+    var border: Color {
+        foreground.opacity(0.32)
+    }
+}
+
+/// Small rounded status pill (e.g. "Last done 3d ago"), color-coded by urgency.
 struct HabitsPill: View {
     let text: String
+    var tone: HabitsPillTone = .green
+    var showsCheck: Bool = false
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(HabitsColor.textSecondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(HabitsColor.surface)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(HabitsColor.border, lineWidth: 1))
+        HStack(spacing: 5) {
+            Text(text)
+            if showsCheck {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+            }
+        }
+        .font(.system(size: 13, weight: .bold))
+        .foregroundStyle(tone.foreground)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(tone.background)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(tone.border, lineWidth: 1))
+    }
+}
+
+/// The `.modal-input` treatment — single-line text field on a surface2 box.
+struct HabitsTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .keyboardType(keyboardType)
+            .foregroundStyle(HabitsColor.textPrimary)
+            .tint(HabitsColor.accent)
+            .padding(14)
+            .background(HabitsColor.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(HabitsColor.border, lineWidth: 1)
+            )
+    }
+}
+
+/// The `.journal-textarea` treatment — multi-line box, starts at ~3 lines tall.
+struct HabitsTextArea: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        TextField(placeholder, text: $text, axis: .vertical)
+            .lineLimit(3...6)
+            .foregroundStyle(HabitsColor.textPrimary)
+            .tint(HabitsColor.accent)
+            .padding(14)
+            .background(HabitsColor.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(HabitsColor.border, lineWidth: 1)
+            )
     }
 }
 
@@ -133,5 +217,26 @@ struct HabitsCardModifier: ViewModifier {
 extension View {
     func habitsCard() -> some View {
         modifier(HabitsCardModifier())
+    }
+}
+
+/// The `.modal-sheet` treatment — a bottom half-sheet sized to its content
+/// (surface background, rounded top corners) rather than a full-screen sheet
+/// with empty space below, matching the web app's modal pattern.
+struct HabitsSheetModifier: ViewModifier {
+    var detents: Set<PresentationDetent>
+
+    func body(content: Content) -> some View {
+        content
+            .presentationDetents(detents)
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
+            .presentationBackground(HabitsColor.surface)
+    }
+}
+
+extension View {
+    func habitsSheet(detents: Set<PresentationDetent> = [.medium]) -> some View {
+        modifier(HabitsSheetModifier(detents: detents))
     }
 }

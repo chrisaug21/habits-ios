@@ -114,9 +114,9 @@ struct TodayView: View {
                         .foregroundStyle(HabitsColor.textPrimary)
                         .multilineTextAlignment(.center)
                     if let days = viewModel.daysSinceLastDone(suggested.id) {
-                        HabitsPill(text: lastDoneText(days))
+                        HabitsPill(text: lastDoneText(days), tone: .forDaysSince(days), showsCheck: days == 0)
                     } else {
-                        HabitsPill(text: "Never done")
+                        HabitsPill(text: "Never done", tone: .forDaysSince(nil))
                     }
                     VStack(spacing: 10) {
                         Button {
@@ -243,7 +243,7 @@ struct TodayView: View {
                     .foregroundStyle(HabitsColor.textPrimary)
             }
             if let days = viewModel.daysSinceLastDone(workout.id) {
-                HabitsPill(text: lastDoneText(days))
+                HabitsPill(text: lastDoneText(days), tone: .forDaysSince(days), showsCheck: days == 0)
             }
         }
         .frame(maxWidth: .infinity)
@@ -328,37 +328,66 @@ struct TodayView: View {
     // MARK: - Sheets
 
     private var logActivitySheet: some View {
-        NavigationStack {
-            List {
-                let suggestedID = viewModel.suggested?.id
-                ForEach(viewModel.activeWorkoutList.filter { $0.id != suggestedID }) { workout in
+        let suggestedID = viewModel.suggested?.id
+        return ScrollView {
+            VStack(spacing: 16) {
+                Text("Log activity")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(HabitsColor.textPrimary)
+                VStack(spacing: 8) {
+                    ForEach(viewModel.activeWorkoutList.filter { $0.id != suggestedID }) { workout in
+                        Button {
+                            showLogActivitySheet = false
+                            Task { await viewModel.logWorkout(workout) }
+                        } label: {
+                            logActivityRow(icon: workout.icon, title: workout.name)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Button {
                         showLogActivitySheet = false
-                        Task { await viewModel.logWorkout(workout) }
+                        showSkipSheet = true
                     } label: {
-                        Label(workout.name, systemImage: workout.icon)
+                        logActivityRow(icon: "moon.fill", title: "Rest Day")
                     }
+                    .buttonStyle(.plain)
+                    Button {
+                        showLogActivitySheet = false
+                        showOtherActivitySheet = true
+                    } label: {
+                        logActivityRow(icon: "bolt.fill", title: "Other activity…")
+                    }
+                    .buttonStyle(.plain)
                 }
-                Button {
-                    showLogActivitySheet = false
-                    showSkipSheet = true
-                } label: {
-                    Label("Rest Day", systemImage: "moon.fill")
-                }
-                Button {
-                    showLogActivitySheet = false
-                    showOtherActivitySheet = true
-                } label: {
-                    Label("Other activity…", systemImage: "bolt.fill")
-                }
+                Button("Cancel") { showLogActivitySheet = false }
+                    .buttonStyle(HabitsGhostButtonStyle())
             }
-            .navigationTitle("Log Activity")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showLogActivitySheet = false }
-                }
-            }
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+            .padding(.bottom, 24)
         }
+        .habitsSheet(detents: [.medium, .large])
+    }
+
+    private func logActivityRow(icon: String, title: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(HabitsColor.textSecondary)
+                .frame(width: 20)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(HabitsColor.textPrimary)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
+        .background(HabitsColor.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(HabitsColor.border, lineWidth: 1)
+        )
     }
 
     private var skipSheet: some View {
@@ -399,19 +428,13 @@ struct TodayView: View {
     private var weightSheet: some View {
         let today = TodayViewModel.todayStr()
         let existing = weightViewModel.entries.first { $0.date == today }
-        return NavigationStack {
-            WeightQuickEntryForm(existingValue: existing?.value_lbs) { pounds in
-                Task {
-                    await weightViewModel.addManualEntry(date: Date(), pounds: pounds)
-                    showWeightSheet = false
-                }
+        return WeightQuickEntryForm(existingValue: existing?.value_lbs) { pounds in
+            Task {
+                await weightViewModel.addManualEntry(date: Date(), pounds: pounds)
+                showWeightSheet = false
             }
-            .navigationTitle("Log Weight")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showWeightSheet = false }
-                }
-            }
+        } onCancel: {
+            showWeightSheet = false
         }
     }
 }
@@ -426,27 +449,28 @@ private struct SkipReasonSheet: View {
     @State private var reason = ""
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    ChipFlow(chips: defaultChips) { reason = $0 }
+        VStack(spacing: 16) {
+            Image(systemName: "moon.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(HabitsColor.amber)
+            Text("Rest Day")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(HabitsColor.textPrimary)
+            ChipFlow(chips: defaultChips) { reason = $0 }
+            HabitsTextField(placeholder: "Reason (optional)", text: $reason)
+            HStack(spacing: 10) {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(HabitsGhostButtonStyle())
+                Button("Skip Today") {
+                    onConfirm(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reason)
                 }
-                Section("Reason (optional)") {
-                    TextField("e.g. Sick", text: $reason)
-                }
-            }
-            .navigationTitle("Rest Day")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Log Day Off") {
-                        onConfirm(reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reason)
-                    }
-                }
+                .buttonStyle(HabitsPrimaryButtonStyle())
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        .habitsSheet()
     }
 }
 
@@ -460,28 +484,26 @@ private struct OtherActivitySheet: View {
     @State private var name = ""
 
     var body: some View {
-        NavigationStack {
-            Form {
-                if !chips.isEmpty {
-                    Section {
-                        ChipFlow(chips: chips) { name = $0 }
-                    }
-                }
-                Section("Activity") {
-                    TextField("e.g. Hiked", text: $name)
-                }
+        VStack(spacing: 16) {
+            Text("Log Other Activity")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(HabitsColor.textPrimary)
+            if !chips.isEmpty {
+                ChipFlow(chips: chips) { name = $0 }
             }
-            .navigationTitle("Other Activity")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Log") { onConfirm(name) }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+            HabitsTextField(placeholder: "Activity name…", text: $name)
+            HStack(spacing: 10) {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(HabitsGhostButtonStyle())
+                Button("Log It") { onConfirm(name) }
+                    .buttonStyle(HabitsPrimaryButtonStyle())
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        .habitsSheet()
     }
 }
 
@@ -516,44 +538,63 @@ private struct JournalEditorSheet: View {
     @State private var isSaving = false
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Intention") {
-                    TextField("What's your intention today?", text: $intention, axis: .vertical)
-                }
-                Section("Gratitude") {
-                    TextField("What are you grateful for?", text: $gratitude, axis: .vertical)
-                }
-                Section("One thing") {
-                    TextField("One thing you want to remember", text: $oneThing, axis: .vertical)
-                }
+        ScrollView {
+            VStack(spacing: 16) {
+                Text("Today's Journal")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(HabitsColor.textPrimary)
+
+                journalField("What's your intention for today?", text: $intention, placeholder: "Enter your intention…")
+                journalField("What are you grateful for?", text: $gratitude, placeholder: "Enter what you're grateful for…")
+                journalField("What's the one thing you'll get done today?", text: $oneThing, placeholder: "Enter your one thing…")
+
                 if showNudge {
-                    Section {
-                        Text("You wrote something similar within the past week. Save anyway?")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        HStack {
-                            Button("Save anyway") { Task { await save(confirmed: true) } }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("You mentioned something similar recently — still want to use it?")
+                            .font(.system(size: 13))
+                            .foregroundStyle(HabitsColor.textSecondary)
+                        HStack(spacing: 8) {
+                            Button("Yes") { Task { await save(confirmed: true) } }
+                                .buttonStyle(HabitsPrimaryButtonStyle())
                             Button("Change it") { showNudge = false }
+                                .buttonStyle(HabitsGhostButtonStyle())
                         }
                     }
+                    .padding(14)
+                    .background(HabitsColor.accent.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(HabitsColor.accent.opacity(0.25), lineWidth: 1)
+                    )
                 }
-            }
-            .navigationTitle("Journal")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+
+                HStack(spacing: 10) {
                     Button("Cancel", action: onDone)
-                }
-                ToolbarItem(placement: .confirmationAction) {
+                        .buttonStyle(HabitsGhostButtonStyle())
                     Button("Save") { Task { await save(confirmed: false) } }
+                        .buttonStyle(HabitsPrimaryButtonStyle())
                         .disabled(isSaving)
                 }
             }
-            .onAppear {
-                intention = existing?.intention ?? ""
-                gratitude = existing?.gratitude ?? ""
-                oneThing = existing?.one_thing ?? ""
-            }
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+            .padding(.bottom, 24)
+        }
+        .habitsSheet(detents: [.large])
+        .onAppear {
+            intention = existing?.intention ?? ""
+            gratitude = existing?.gratitude ?? ""
+            oneThing = existing?.one_thing ?? ""
+        }
+    }
+
+    private func journalField(_ label: String, text: Binding<String>, placeholder: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(HabitsColor.textSecondary)
+            HabitsTextArea(placeholder: placeholder, text: text)
         }
     }
 
@@ -577,24 +618,48 @@ private struct JournalEditorSheet: View {
 private struct WeightQuickEntryForm: View {
     let existingValue: Double?
     let onSave: (Double) -> Void
+    let onCancel: () -> Void
 
     @State private var text = ""
 
     var body: some View {
-        Form {
-            TextField("Weight (lbs)", text: $text)
-                .keyboardType(.decimalPad)
-        }
-        .onAppear {
-            if let existingValue { text = String(existingValue) }
-        }
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
+        VStack(spacing: 16) {
+            Text("Log Weight")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(HabitsColor.textPrimary)
+            HStack(spacing: 10) {
+                TextField("0.0", text: $text)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(HabitsColor.textPrimary)
+                    .tint(HabitsColor.accent)
+                Text("lbs")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(HabitsColor.textSecondary)
+            }
+            .padding(14)
+            .background(HabitsColor.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(HabitsColor.border, lineWidth: 1)
+            )
+            HStack(spacing: 10) {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(HabitsGhostButtonStyle())
                 Button("Save") {
                     if let pounds = Double(text) { onSave(pounds) }
                 }
+                .buttonStyle(HabitsPrimaryButtonStyle())
                 .disabled(Double(text) == nil)
             }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        .habitsSheet()
+        .onAppear {
+            if let existingValue { text = String(existingValue) }
         }
     }
 }
