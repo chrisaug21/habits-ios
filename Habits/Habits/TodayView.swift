@@ -22,8 +22,11 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 16) {
+                    Color.clear.frame(height: 0).id(Self.topAnchor)
+
                     dateLabel
 
                     if let error = viewModel.errorMessage {
@@ -51,7 +54,7 @@ struct TodayView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle("Ondoloop")
+            .navigationTitle(habitsAppHeaderTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -74,10 +77,18 @@ struct TodayView: View {
             .sheet(isPresented: $showOtherActivitySheet) { otherActivitySheet }
             .sheet(isPresented: $showJournalSheet) { journalSheet }
             .sheet(isPresented: $showWeightSheet) { weightSheet }
+            // TabView keeps each tab's ScrollView position across switches
+            // (the view isn't recreated) — onAppear does fire every time the
+            // tab becomes visible again, so use it to reset to the top
+            // rather than leaving the user wherever they last scrolled.
+            .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
+            }
         }
         .tint(HabitsColor.accent)
         .preferredColorScheme(.dark)
     }
+
+    private static let topAnchor = "top"
 
     // MARK: - Header
 

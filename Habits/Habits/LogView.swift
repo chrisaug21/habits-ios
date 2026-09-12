@@ -70,32 +70,42 @@ struct LogView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 12)
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .font(.system(size: 13))
-                                .foregroundStyle(HabitsColor.red)
-                        }
-                        Group {
-                            switch subTab {
-                            case .calendar: calendarSection
-                            case .list: listSection
-                            case .schedule: scheduleSection
-                            }
-                        }
-                        .id(subTab)
-                        .transition(subTabTransition)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Color.clear.frame(height: 0).id(Self.topAnchor)
 
-                        HabitsVersionFooter()
+                            if let error = viewModel.errorMessage {
+                                Text(error)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(HabitsColor.red)
+                            }
+                            Group {
+                                switch subTab {
+                                case .calendar: calendarSection
+                                case .list: listSection
+                                case .schedule: scheduleSection
+                                }
+                            }
+                            .id(subTab)
+                            .transition(subTabTransition)
+
+                            HabitsVersionFooter()
+                        }
+                        .padding(16)
+                        .clipped()
                     }
-                    .padding(16)
-                    .clipped()
+                    // TabView keeps each tab's ScrollView position across
+                    // switches (the view isn't recreated) — onAppear does
+                    // fire every time the tab becomes visible again, so use
+                    // it to reset to the top rather than leaving the user
+                    // wherever they last scrolled.
+                    .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
                 }
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle("Log")
+            .navigationTitle(habitsAppHeaderTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -459,6 +469,8 @@ struct LogView: View {
     }
 
     // MARK: - Date helpers
+
+    private static let topAnchor = "top"
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
