@@ -28,6 +28,7 @@ struct SettingsView: View {
                     } label: {
                         Label(weightViewModel.isSyncing ? "Syncing..." : "Sync from Health", systemImage: "heart.fill")
                     }
+                    .buttonBorderShape(.roundedRectangle)
                     .disabled(weightViewModel.isSyncing)
 
                     if let error = weightViewModel.errorMessage {
@@ -65,6 +66,7 @@ struct SettingsView: View {
                     Button("Log Out") {
                         Task { await auth.signOut() }
                     }
+                    .buttonBorderShape(.roundedRectangle)
                     .foregroundStyle(.red)
                 }
             }

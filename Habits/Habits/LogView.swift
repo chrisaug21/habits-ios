@@ -27,8 +27,35 @@ struct LogView: View {
     @StateObject private var weightViewModel: WeightViewModel
 
     @State private var subTab: LogSubTab = .calendar
+    @State private var tabTransitionEdge: Edge = .trailing
     @State private var calendarMonth = Date()
     @State private var backfillTarget: BackfillTarget?
+
+    /// Wraps `subTab` so switching tabs animates as a directional slide
+    /// (forward into a later tab, backward into an earlier one) instead of
+    /// an instant cut — `HabitsSegmentedControl` just sets this like any
+    /// other binding and doesn't need to know about the animation.
+    private var animatedSubTab: Binding<LogSubTab> {
+        Binding(
+            get: { subTab },
+            set: { newValue in
+                let cases = LogSubTab.allCases
+                if let newIdx = cases.firstIndex(of: newValue), let oldIdx = cases.firstIndex(of: subTab) {
+                    tabTransitionEdge = newIdx > oldIdx ? .trailing : .leading
+                }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    subTab = newValue
+                }
+            }
+        )
+    }
+
+    private var subTabTransition: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: tabTransitionEdge).combined(with: .opacity),
+            removal: .move(edge: tabTransitionEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
+        )
+    }
 
     init(userID: UUID) {
         _viewModel = StateObject(wrappedValue: TodayViewModel(userID: userID))
@@ -38,15 +65,10 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("View", selection: $subTab) {
-                    ForEach(LogSubTab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+                HabitsSegmentedControl(items: LogSubTab.allCases, selection: animatedSubTab) { $0.rawValue }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -55,13 +77,18 @@ struct LogView: View {
                                 .font(.system(size: 13))
                                 .foregroundStyle(HabitsColor.red)
                         }
-                        switch subTab {
-                        case .calendar: calendarSection
-                        case .list: listSection
-                        case .schedule: scheduleSection
+                        Group {
+                            switch subTab {
+                            case .calendar: calendarSection
+                            case .list: listSection
+                            case .schedule: scheduleSection
+                            }
                         }
+                        .id(subTab)
+                        .transition(subTabTransition)
                     }
                     .padding(16)
+                    .clipped()
                 }
             }
             .background(HabitsColor.bg.ignoresSafeArea())
@@ -107,8 +134,7 @@ struct LogView: View {
             Button { shiftMonth(-1) } label: {
                 Image(systemName: "chevron.left")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(HabitsColor.textSecondary)
+            .buttonStyle(HabitsIconButtonStyle())
 
             Spacer()
 
@@ -121,8 +147,7 @@ struct LogView: View {
             Button { shiftMonth(1) } label: {
                 Image(systemName: "chevron.right")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(HabitsColor.textSecondary)
+            .buttonStyle(HabitsIconButtonStyle())
         }
     }
 
@@ -644,7 +669,7 @@ private struct BackfillSheet: View {
 
             HStack(spacing: 10) {
                 Button("Cancel") { mode = .readonly }
-                    .buttonStyle(HabitsGhostButtonStyle())
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Save") {
                     guard let selectedType else { return }
                     let trimmed = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -690,7 +715,7 @@ private struct BackfillSheet: View {
                     .stroke(selectedType == id ? color.opacity(0.7) : HabitsColor.border, lineWidth: selectedType == id ? 1.5 : 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HabitsRowButtonStyle())
     }
 
     // MARK: Edit weight
@@ -714,7 +739,7 @@ private struct BackfillSheet: View {
 
             HStack(spacing: 10) {
                 Button("Cancel") { mode = .readonly }
-                    .buttonStyle(HabitsGhostButtonStyle())
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Save") {
                     guard let pounds = Double(weightText) else { return }
                     Task {
