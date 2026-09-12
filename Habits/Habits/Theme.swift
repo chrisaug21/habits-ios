@@ -39,42 +39,29 @@ enum HabitsColor {
     static let teal = Color(hex: 0x2dd4bf)
 }
 
-/// Drives tap feedback from the touch itself rather than from
-/// `ButtonStyle.Configuration.isPressed`. Inside a `ScrollView` (all of our
-/// sheets and lists are), SwiftUI holds off flipping `isPressed` until it's
-/// sure the touch is a tap and not the start of a scroll — so a quick tap can
-/// end before `isPressed` ever visibly changes, which reads as "no animation"
-/// and "the button didn't register."
+/// Shared scale animation for our button styles, driven by
+/// `ButtonStyle.Configuration.isPressed` — SwiftUI's own built-in press
+/// state — rather than a custom touch-tracking gesture.
 ///
-/// A plain `DragGesture(minimumDistance: 0)` attached via `simultaneousGesture`
-/// looks like the obvious fix (and matches the web app's `:active`, which
-/// fires on touchstart), but on a `Button` inside a `ScrollView` it actually
-/// swallows the tap — the button's own gesture never fires, even though the
-/// press animation plays. `LongPressGesture` + `@GestureState` doesn't have
-/// that problem: `updating` flips `isPressed` the instant the touch begins
-/// (it doesn't wait for `minimumDuration` to elapse), and `@GestureState`
-/// automatically resets it the instant the touch ends, so it behaves like
-/// instant touch-down/touch-up feedback without competing with the button's
-/// own tap recognition.
+/// Two earlier versions of this attached an extra gesture
+/// (`DragGesture(minimumDistance: 0)`, then `LongPressGesture`) via
+/// `simultaneousGesture` to get more "instant" feedback inside a
+/// `ScrollView` (SwiftUI otherwise waits to confirm a touch is a tap, not
+/// the start of a scroll, before flipping `isPressed`). Both looked correct
+/// in isolation but broke real tapping on device: the animation played, but
+/// the button's own tap gesture never fired, so nothing after the animation
+/// — opening a sheet, marking a workout done — ever happened. `isPressed`
+/// can lag by a beat on a very fast tap inside a ScrollView, but unlike a
+/// competing gesture, it can never block the tap itself.
 private struct PressFeedback<Content: View>: View {
     var scale: CGFloat = 0.96
+    var isPressed: Bool
     @ViewBuilder var content: (Bool) -> Content
-
-    @GestureState private var isPressed = false
-    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         content(isPressed)
-            .contentShape(Rectangle())
             .scaleEffect(isPressed ? scale : 1)
             .animation(.easeOut(duration: 0.1), value: isPressed)
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: .infinity)
-                    .updating($isPressed) { _, state, _ in
-                        guard isEnabled else { return }
-                        state = true
-                    }
-            )
     }
 }
 
@@ -83,7 +70,7 @@ struct HabitsPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        PressFeedback { pressed in
+        PressFeedback(isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(isEnabled ? .white : HabitsColor.textSecondary)
@@ -118,7 +105,7 @@ struct HabitsGhostButtonStyle: ButtonStyle {
     var size: Size = .compact
 
     func makeBody(configuration: Configuration) -> some View {
-        PressFeedback { pressed in
+        PressFeedback(isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .font(.system(size: size == .large ? 17 : 14, weight: .semibold))
                 .foregroundStyle(HabitsColor.textSecondary)
@@ -140,7 +127,7 @@ struct HabitsGhostButtonStyle: ButtonStyle {
 /// Recent-value chip style used in the skip / other-activity pickers.
 struct HabitsChipButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        PressFeedback(scale: 0.94) { pressed in
+        PressFeedback(scale: 0.94, isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(pressed ? HabitsColor.accent : HabitsColor.textSecondary)
@@ -160,7 +147,7 @@ struct HabitsChipButtonStyle: ButtonStyle {
 /// a bare glyph with no padding, which read as a finicky, tiny hit box.
 struct HabitsIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        PressFeedback(scale: 0.92) { pressed in
+        PressFeedback(scale: 0.92, isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(pressed ? HabitsColor.textPrimary : HabitsColor.textSecondary)
@@ -182,7 +169,7 @@ struct HabitsIconButtonStyle: ButtonStyle {
 /// all beyond whatever the row's own background already does.
 struct HabitsRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        PressFeedback(scale: 0.98) { pressed in
+        PressFeedback(scale: 0.98, isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .opacity(pressed ? 0.7 : 1)
         }
