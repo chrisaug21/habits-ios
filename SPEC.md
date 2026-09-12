@@ -102,7 +102,7 @@ Flagging now so these don't surprise you later, but none of this blocks
 phase 1 if you're staying on direct-install or TestFlight-internal:
 
 - **Sign in with Apple** must be offered as a login option alongside email/password (Apple App Review requirement whenever third-party/standard account creation exists).
-- **In-app account deletion** — users must be able to delete their account from within the app, not just by emailing you.
+- **In-app account deletion** — users must be able to delete their account from within the app, not just by emailing you. Note: the client SDK's anon/publishable key can't delete a Supabase Auth user — this needs a server-side Edge Function using the service-role key, not a client-only change.
 - **Privacy policy URL** — required for submission; scrutiny is higher for apps requesting HealthKit access (health data can't be used for ads/tracking, purpose must be clearly disclosed in both the policy and the permission prompt copy).
 - App icon, screenshots, App Store description/metadata.
 

@@ -148,11 +148,75 @@ going public.
 
 ---
 
-## Phase 8 — What's next (not detailed yet)
+## Phase 8 — Full feature parity (Today, Log, Stats, Journal)
 
-Once phase 1 is working and you've used it for a bit: decide whether to
-extend the native app toward Today/Log/Stats/Journal (see the "Phase 2+"
-note in SPEC.md), and whether/when to pursue actual public App Store
-submission (Sign in with Apple, account deletion, privacy policy — flagged
-in SPEC.md's "Before public App Store submission" section, not needed for
-TestFlight-only use).
+Per the decision to eventually replace the web app rather than run both
+long-term, each remaining web feature becomes its own native screen.
+Rather than building all four at once, treat each like phase 1 was treated:
+scope it briefly, build it, test on your device, commit — one at a time.
+
+Suggested order (roughly matches how central each feature is to daily use):
+
+1. **Today** — the daily workout/journal/weight home screen. Reference: `today.js` in the `habits` (web) repo.
+2. **Log** — calendar view + backfill. Reference: `log.js`.
+3. **Stats** — streaks, consistency, weight trend chart. Reference: `stats.js`.
+4. **Journal** — intention/gratitude entries. Reference: the journal-related code in `data.js`/`today.js`.
+
+For each: **[Both]** write a short spec addition first — a paragraph added
+to SPEC.md is enough, it doesn't need its own document — before writing any
+code. Scope creep is the main risk once you're not following a pre-written
+plan the way phase 1 was.
+
+Once all four are live natively and you've used the iOS app as your daily
+driver for a while with no regressions, that's your real signal to retire
+the web app — not a fixed date.
+
+---
+
+## Phase 9 — Branding consistency (before going public)
+
+- **[You + Claude Design]** Redo the icon/wordmark artwork to say
+  "Habitude Loop" (or whatever name you land on), replacing the placeholder
+  PNG from Phase 7.
+- No Xcode-side renaming needed beyond the icon image itself — the internal
+  product name, bundle ID (`com.chrisaug.Habits`), and target name can all
+  stay "Habits" forever. Those are technical identifiers nobody but you
+  ever sees; they're unrelated to the public-facing name.
+- **[You · Mac]** Swap the new icon into `Assets.xcassets` → AppIcon the
+  same way you did the placeholder in Phase 7.
+
+---
+
+## Phase 10 — Public App Store submission
+
+This is the phase SPEC.md's "Before public App Store submission" section
+previewed. Apple's exact requirements shift over time and App Store
+Connect will walk you through whatever's current at submission time, but
+here's what to expect:
+
+1. **[Claude Code]** Add **Sign in with Apple** as a login option alongside
+   email/password — required by Apple review whenever an app offers other
+   account-creation methods. This is another Xcode capability (like
+   HealthKit) plus Swift code; treat it as its own mini-phase when you get
+   here.
+2. **[Both]** Add in-app account deletion. Real gotcha worth knowing now:
+   deleting a Supabase Auth user typically can't be done from the client
+   SDK — the anon/publishable key doesn't have permission — it needs a
+   small server-side Supabase Edge Function using the service-role key,
+   similar to the Edge Functions your other apps already use for
+   privileged operations. This isn't a client-only Swift change.
+3. **[You]** Write and host a privacy policy — a simple static page works;
+   any of your existing Netlify sites can host it. Needs specific language
+   about HealthKit data given Apple's extra scrutiny there (no ads/tracking
+   use, clearly disclosed purpose).
+4. **[You · Mac]** Prepare App Store screenshots on whatever device sizes
+   Apple currently requires — Xcode's Simulator can generate these, no need
+   to screenshot your physical phone.
+5. **[You · Web]** Fill in App Store Connect's listing metadata:
+   description, keywords, support URL, age rating questionnaire, export
+   compliance questionnaire (usually "No" for an app not implementing
+   custom encryption beyond standard HTTPS — confirm this is still true for
+   your build before answering).
+6. **[You · Web]** Submit for review. Typical turnaround is 24-48 hours; a
+   rejection just means fixing the flagged issue and resubmitting, not
+   starting over.
