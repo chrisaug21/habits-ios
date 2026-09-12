@@ -36,8 +36,11 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 16) {
+                    Color.clear.frame(height: 0).id(Self.topAnchor)
+
                     accountCard
                     todayTabCard
                     weightCard
@@ -85,10 +88,18 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all your data. This cannot be undone.")
             }
+            // TabView keeps each tab's ScrollView position across switches
+            // (the view isn't recreated) — onAppear does fire every time the
+            // tab becomes visible again, so use it to reset to the top
+            // rather than leaving the user wherever they last scrolled.
+            .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
+            }
         }
         .tint(HabitsColor.accent)
         .preferredColorScheme(.dark)
     }
+
+    private static let topAnchor = "top"
 
     // MARK: - Keyboard
 
