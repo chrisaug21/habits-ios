@@ -69,6 +69,15 @@ private struct PressFeedback<Content: View>: View {
 struct HabitsPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
+    /// Overrides the default solid accent fill — e.g. red for a destructive
+    /// primary action like Delete Account — while every existing call site
+    /// (which passes the default) keeps its exact current look.
+    var tint: Color = HabitsColor.accent
+
+    private var pressedTint: Color {
+        tint == HabitsColor.accent ? HabitsColor.accentDark : tint.opacity(0.8)
+    }
+
     func makeBody(configuration: Configuration) -> some View {
         PressFeedback(isPressed: configuration.isPressed) { pressed in
             configuration.label
@@ -78,7 +87,7 @@ struct HabitsPrimaryButtonStyle: ButtonStyle {
                 .padding(.vertical, 18)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(isEnabled ? (pressed ? HabitsColor.accentDark : HabitsColor.accent) : HabitsColor.surface)
+                        .fill(isEnabled ? (pressed ? pressedTint : tint) : HabitsColor.surface)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -104,11 +113,16 @@ struct HabitsGhostButtonStyle: ButtonStyle {
 
     var size: Size = .compact
 
+    /// Overrides the default gray-text/purple-border look with a single
+    /// color — e.g. red for a destructive ghost action like Sign Out —
+    /// while leaving every existing call site (which passes nil) unchanged.
+    var tint: Color? = nil
+
     func makeBody(configuration: Configuration) -> some View {
         PressFeedback(isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .font(.system(size: size == .large ? 17 : 14, weight: .semibold))
-                .foregroundStyle(HabitsColor.textSecondary)
+                .foregroundStyle(tint ?? HabitsColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, size == .large ? 18 : 12)
                 .background(
@@ -117,7 +131,7 @@ struct HabitsGhostButtonStyle: ButtonStyle {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(HabitsColor.borderActive.opacity(0.7), lineWidth: 1.25)
+                        .stroke((tint ?? HabitsColor.borderActive).opacity(0.7), lineWidth: 1.25)
                 )
                 .opacity(isEnabled ? 1 : 0.35)
         }
@@ -230,6 +244,26 @@ struct HabitsPill: View {
         .background(tone.background)
         .clipShape(Capsule())
         .overlay(Capsule().stroke(tone.border, lineWidth: 1))
+    }
+}
+
+/// `HabitsTextField`'s secure counterpart, same `.modal-input` treatment —
+/// for a password field inside a themed sheet.
+struct HabitsSecureField: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        SecureField(placeholder, text: $text)
+            .foregroundStyle(HabitsColor.textPrimary)
+            .tint(HabitsColor.accent)
+            .padding(14)
+            .background(HabitsColor.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(HabitsColor.border, lineWidth: 1)
+            )
     }
 }
 
