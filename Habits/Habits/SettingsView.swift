@@ -51,7 +51,9 @@ struct SettingsView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle("Settings")
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { dismissKeyboard() }
+            .navigationTitle(habitsAppHeaderTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -60,7 +62,9 @@ struct SettingsView: View {
                 await settingsViewModel.loadPreferences()
                 await reminderViewModel.refreshAuthorizationStatus()
             }
-            .sheet(isPresented: $showPasswordSheet) { passwordSheet }
+            .sheet(isPresented: $showPasswordSheet, onDismiss: settingsViewModel.resetPasswordFields) {
+                passwordSheet
+            }
             .alert("Delete account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Everything", role: .destructive) {
@@ -84,6 +88,15 @@ struct SettingsView: View {
         }
         .tint(HabitsColor.accent)
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Keyboard
+
+    /// Tapping anywhere outside a text field (the name fields are the only
+    /// ones on this screen) should drop the keyboard — SwiftUI has no
+    /// built-in "tap away to resign" for a plain `TextField`.
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     // MARK: - Section label
@@ -390,8 +403,11 @@ private struct PasswordChangeSheet: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 28)
-        .padding(.bottom, 24)
-        .habitsSheet()
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+        // Small, fixed-content form — a plain .medium detent leaves most of
+        // the sheet empty below the buttons, so size it to the content
+        // instead of the usual [.medium]/[.large] used by the bigger sheets.
+        .habitsSheet(detents: [.height(300)])
     }
 }

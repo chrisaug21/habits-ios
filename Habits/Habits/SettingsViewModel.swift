@@ -77,6 +77,15 @@ final class SettingsViewModel: ObservableObject {
         isSavingPassword = false
     }
 
+    /// Clears the password sheet's fields whenever it closes, however it
+    /// closed (Cancel, a successful save, or swiping it away) — otherwise
+    /// whatever was typed is still sitting there the next time it opens.
+    func resetPasswordFields() {
+        newPassword = ""
+        passwordErrorMessage = nil
+        passwordSuccessMessage = nil
+    }
+
     func loadPreferences() async {
         isLoadingPreferences = true
         preferencesErrorMessage = nil

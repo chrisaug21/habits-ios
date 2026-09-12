@@ -20,6 +20,11 @@ fileprivate extension Color {
     }
 }
 
+/// Shown as every tab's nav title — App Store subtitle-style, see SPEC.md's
+/// Ondoloop naming section — instead of a different per-page label, since
+/// the bottom tab bar already shows which page you're on.
+let habitsAppHeaderTitle = "Ondoloop: The Habits App"
+
 enum HabitsColor {
     static let bg = Color(hex: 0x0d0d14)
     static let surface = Color(hex: 0x13131e)
@@ -93,6 +98,10 @@ struct HabitsPrimaryButtonStyle: ButtonStyle {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(isEnabled ? .clear : HabitsColor.border, lineWidth: 1)
                 )
+                // Disabled needs to read as clearly greyed-out, not just a
+                // different fill — otherwise it looks the same as an enabled
+                // ghost/secondary button rather than an unavailable action.
+                .opacity(isEnabled ? 1 : 0.4)
         }
     }
 }
