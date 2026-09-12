@@ -121,7 +121,9 @@ final class RotationBuilderViewModel: ObservableObject {
 
     func removeStagedSlot(_ slotId: String) {
         guard let slots = stagedSlots, slots.count > 2 else { return }
-        stagedSlots?.removeAll { $0.id == slotId }
+        withAnimation(.easeOut(duration: 0.22)) {
+            stagedSlots?.removeAll { $0.id == slotId }
+        }
     }
 
     private func flashAdded(_ workoutId: String) {

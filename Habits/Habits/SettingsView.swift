@@ -84,9 +84,20 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showProgramReset) {
-                ProgramResetSheet(viewModel: rotationBuilderViewModel) {
-                    showProgramReset = false
-                }
+                ProgramResetSheet(
+                    viewModel: rotationBuilderViewModel,
+                    onDismiss: { showProgramReset = false },
+                    onBuildOwn: {
+                        showProgramReset = false
+                        // Let the reset sheet's dismiss animation finish before
+                        // presenting the builder — presenting both at once on
+                        // the same view can drop the second sheet's transition.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            rotationBuilderViewModel.openBuilder()
+                            showSequenceBuilder = true
+                        }
+                    }
+                )
             }
             .alert("Delete account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}

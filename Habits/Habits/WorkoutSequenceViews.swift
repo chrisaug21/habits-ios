@@ -3,13 +3,25 @@
 //  Habits
 //
 //  The Settings "Workout Sequence" card plus its two sheets: the builder
-//  (reorder/add/remove workouts, create custom ones) and the starter-program
-//  reset picker. See SPEC.md's Settings addendum, pass 2, and the web app's
+//  (reorder/add/remove workouts, create custom ones) and the program reset
+//  picker. See SPEC.md's Settings addendum, pass 2, and the web app's
 //  settings.js rotation-builder / program-picker for the behavior mirrored
 //  here.
 //
 
 import SwiftUI
+
+/// A workout row ready to display, regardless of whether it came from the
+/// user's saved `user_rotation` (icon stored as a Lucide name, needs
+/// translating) or the hardcoded default rotation (icon already an SF
+/// Symbol name) — so the card can show a real sequence either way instead
+/// of hiding behind a generic "you're on the default" message.
+private struct DisplayWorkout: Identifiable {
+    let id = UUID()
+    let icon: String
+    let name: String
+    let category: String
+}
 
 // MARK: - Settings summary card
 
@@ -18,6 +30,17 @@ struct WorkoutSequenceCard: View {
     @Binding var showBuilder: Bool
     @Binding var showProgramReset: Bool
 
+    private var displayRotation: [DisplayWorkout] {
+        if let rotation = viewModel.currentRotation {
+            return rotation.map {
+                DisplayWorkout(icon: LucideIcon.sfSymbolName($0.icon), name: $0.name, category: $0.category ?? "")
+            }
+        }
+        return DefaultWorkouts.rotation.map {
+            DisplayWorkout(icon: $0.icon, name: $0.name, category: $0.category)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("WORKOUT SEQUENCE")
@@ -25,34 +48,34 @@ struct WorkoutSequenceCard: View {
                 .tracking(1.4)
                 .foregroundStyle(HabitsColor.textSecondary)
 
-            if let rotation = viewModel.currentRotation {
-                VStack(spacing: 10) {
-                    ForEach(Array(rotation.enumerated()), id: \.offset) { index, workout in
-                        HStack(spacing: 10) {
-                            Text("\(index + 1)")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(HabitsColor.textDim)
-                                .frame(width: 18)
-                            Image(systemName: LucideIcon.sfSymbolName(workout.icon))
-                                .font(.system(size: 14))
+            if !viewModel.hasCustomRotation {
+                Text("Using the default sequence:")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(HabitsColor.textSecondary)
+            }
+
+            VStack(spacing: 10) {
+                ForEach(Array(displayRotation.enumerated()), id: \.offset) { index, workout in
+                    HStack(spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(HabitsColor.textDim)
+                            .frame(width: 18)
+                        Image(systemName: workout.icon)
+                            .font(.system(size: 14))
+                            .foregroundStyle(HabitsColor.textSecondary)
+                            .frame(width: 20)
+                        Text(workout.name)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(HabitsColor.textPrimary)
+                        Spacer()
+                        if !workout.category.isEmpty {
+                            Text(workout.category)
+                                .font(.system(size: 12))
                                 .foregroundStyle(HabitsColor.textSecondary)
-                                .frame(width: 20)
-                            Text(workout.name)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(HabitsColor.textPrimary)
-                            Spacer()
-                            if let category = workout.category, !category.isEmpty {
-                                Text(category)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(HabitsColor.textSecondary)
-                            }
                         }
                     }
                 }
-            } else {
-                Text("You're using the default 5-workout sequence. Customize it to add your own workouts and order.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(HabitsColor.textSecondary)
             }
 
             VStack(spacing: 10) {
@@ -62,7 +85,7 @@ struct WorkoutSequenceCard: View {
                 }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
 
-                Button("Reset to Starter Program") {
+                Button("Reset to a Program") {
                     showProgramReset = true
                 }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
@@ -161,6 +184,7 @@ struct RotationBuilderSheet: View {
                 stagedRow(slot, position: index + 1)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
             }
             .onMove { viewModel.moveStagedSlots(fromOffsets: $0, toOffset: $1) }
         } header: {
@@ -323,16 +347,22 @@ struct RotationBuilderSheet: View {
 struct ProgramResetSheet: View {
     @ObservedObject var viewModel: RotationBuilderViewModel
     let onDismiss: () -> Void
+    let onBuildOwn: () -> Void
     @State private var pendingProgram: StarterProgram?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
+                    Text("Pick a program to replace your current sequence.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(HabitsColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     if viewModel.isLoadingPrograms {
                         ProgressView().tint(HabitsColor.accent).padding(.top, 40)
                     } else if viewModel.programs.isEmpty {
-                        Text("Programs could not be loaded right now. You can still build your own sequence from Settings.")
+                        Text("Programs could not be loaded right now. You can still build your own from scratch.")
                             .font(.system(size: 13))
                             .foregroundStyle(HabitsColor.textSecondary)
                             .padding(.top, 24)
@@ -348,6 +378,19 @@ struct ProgramResetSheet: View {
                         }
                     }
 
+                    Button {
+                        onBuildOwn()
+                    } label: {
+                        HStack {
+                            Text("Build My Own")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                    }
+                    .buttonStyle(HabitsGhostButtonStyle(size: .large))
+                    .disabled(viewModel.isApplyingProgram)
+
                     if let error = viewModel.programsErrorMessage ?? viewModel.applyProgramErrorMessage {
                         Text(error).font(.system(size: 12)).foregroundStyle(HabitsColor.red)
                     }
@@ -356,7 +399,7 @@ struct ProgramResetSheet: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle("Reset Sequence")
+            .navigationTitle("Select a Program")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -394,7 +437,7 @@ struct ProgramResetSheet: View {
 
     private func programCard(_ program: StarterProgram) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(program.name)
                         .font(.system(size: 15, weight: .bold))
@@ -407,17 +450,22 @@ struct ProgramResetSheet: View {
                 }
                 Spacer()
                 Text("\(program.workouts.count) workout\(program.workouts.count == 1 ? "" : "s")")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(HabitsColor.textSecondary)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(HabitsColor.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(HabitsColor.accent.opacity(0.14))
+                    .clipShape(Capsule())
             }
             HStack(spacing: 8) {
                 ForEach(Array(program.workouts.prefix(5))) { workout in
                     Image(systemName: LucideIcon.sfSymbolName(workout.icon))
                         .font(.system(size: 13))
-                        .foregroundStyle(HabitsColor.textSecondary)
-                        .frame(width: 28, height: 28)
-                        .background(HabitsColor.surface)
+                        .foregroundStyle(HabitsColor.textPrimary)
+                        .frame(width: 30, height: 30)
+                        .background(HabitsColor.surface2)
                         .clipShape(Circle())
+                        .overlay(Circle().stroke(HabitsColor.border, lineWidth: 1))
                 }
                 if program.workouts.count > 5 {
                     Text("+\(program.workouts.count - 5)")
@@ -426,6 +474,12 @@ struct ProgramResetSheet: View {
                 }
             }
         }
-        .habitsCard()
+        .padding(16)
+        .background(HabitsColor.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(HabitsColor.borderActive.opacity(0.4), lineWidth: 1)
+        )
     }
 }
