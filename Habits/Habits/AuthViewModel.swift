@@ -112,6 +112,9 @@ final class AuthViewModel: ObservableObject {
         if msg.contains("already registered") || msg.contains("user already exists") || msg.contains("already been registered") {
             return "An account with this email already exists"
         }
+        if msg.contains("unable to validate email") || (msg.contains("email") && msg.contains("invalid format")) {
+            return "Enter a valid email address"
+        }
         if msg.contains("password") && (msg.contains("character") || msg.contains("short")) {
             return "Password must be at least 8 characters"
         }

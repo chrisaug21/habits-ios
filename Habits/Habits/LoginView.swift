@@ -37,11 +37,15 @@ struct LoginView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                Image("OndoloopLogo")
+                // Vertical lockup-with-descriptor variant, tried here (ondark)
+                // vs. the plain white variant on onboarding's last step, per
+                // request, so both can be compared in context.
+                Image("OndoloopLockupOndark")
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 64)
-                    .padding(.top, 40)
+                    .frame(maxWidth: .infinity, maxHeight: 90)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 32)
 
                 if mode == .signUp {
                     Text("A personal daily habits tracker. Build the systems that make a healthy life feel automatic.")

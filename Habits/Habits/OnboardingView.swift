@@ -140,6 +140,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 16) {
             title("Small actions. Big change.")
             copy("The science is clear: consistency beats intensity every time. A short workout today is worth more than a perfect workout someday. Ondoloop sets you up with a workout sequence and helps you stay on track — day by day, at your own pace.")
+            exampleSequencePreview
         }
     }
 
@@ -148,6 +149,7 @@ struct OnboardingView: View {
             title("Your sequence. Your pace.")
             copy("Ondoloop gives you a personalized workout sequence — an ordered list of workouts that cycles day by day. Finish one, the next is waiting. Miss a day? No problem. Your sequence picks up exactly where you left off.")
             copy("No fixed days. No guilt. Just your next step, always ready.")
+            exampleTodayPreview
         }
     }
 
@@ -183,10 +185,132 @@ struct OnboardingView: View {
             copy("Your weight fluctuates by 2–4 lbs every single day based on water, food, sleep, and stress. A single weigh-in can mislead you — whether you're losing, gaining, or maintaining.")
             copy("Daily tracking gives you the truth. Ondoloop shows your weight trend over time and your 7-day rolling average — the signal, not the noise.")
             copy("On iOS, Ondoloop can also read your weight straight from Apple Health — tap \"Sync from Health\" in Settings anytime your smart scale logs a new reading, and it lands in the same log automatically. This is read-only: Ondoloop never writes back to Health.")
+            exampleWeightChartPreview
             Text("Not ready to track weight yet? You can turn it off in Settings.")
                 .font(.system(size: 13))
                 .italic()
                 .foregroundStyle(HabitsColor.textDim)
+        }
+    }
+
+    // MARK: - Illustrative previews (steps 1, 2, 5)
+    //
+    // These steps were sparse with an attached screenshot planned for each,
+    // but the actual pasted images from that message weren't retrievable as
+    // files on disk in this session (checked Screenshots, Caches, and the
+    // scratchpad — none matched). Rather than block on that, or bake a
+    // static screenshot of real personal data into the app bundle as a
+    // permanent onboarding graphic, these are small illustrative mockups —
+    // built from the same HabitsColor/habitsCard styling as the real
+    // screens, with placeholder example data, not live data. Swap for the
+    // real screenshots if they're dropped into the repo directly.
+
+    private struct ExampleWorkout {
+        let index: Int
+        let icon: String
+        let name: String
+        let category: String
+    }
+
+    private static let exampleWorkouts: [ExampleWorkout] = [
+        ExampleWorkout(index: 1, icon: "bicycle", name: "Peloton Ride", category: "Cardio"),
+        ExampleWorkout(index: 2, icon: "figure.strengthtraining.traditional", name: "Upper Push", category: "Strength"),
+        ExampleWorkout(index: 3, icon: "sparkles", name: "Pilates", category: "Flexibility"),
+        ExampleWorkout(index: 4, icon: "figure.cooldown", name: "Lower Body", category: "Strength"),
+    ]
+
+    private var exampleSequencePreview: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("YOUR SEQUENCE (EXAMPLE)")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(HabitsColor.textDim)
+            ForEach(Self.exampleWorkouts, id: \.name) { workout in
+                HStack(spacing: 12) {
+                    Text("\(workout.index)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(HabitsColor.textDim)
+                        .frame(width: 16)
+                    Image(systemName: workout.icon)
+                        .font(.system(size: 14))
+                        .foregroundStyle(HabitsColor.textSecondary)
+                        .frame(width: 20)
+                    Text(workout.name)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(HabitsColor.textPrimary)
+                    Spacer()
+                    Text(workout.category)
+                        .font(.system(size: 12))
+                        .foregroundStyle(HabitsColor.textSecondary)
+                }
+            }
+        }
+        .habitsCard()
+    }
+
+    private var exampleTodayPreview: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("TODAY (EXAMPLE)")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(HabitsColor.textDim)
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(HabitsColor.accent)
+                Text("Peloton Ride")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(HabitsColor.textPrimary)
+                Spacer()
+                Text("Completed")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(HabitsColor.accent)
+            }
+            Rectangle().fill(HabitsColor.border).frame(height: 1)
+            HStack {
+                Text("TOMORROW")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(HabitsColor.textDim)
+                Spacer()
+                Text("Lower Body")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(HabitsColor.textSecondary)
+            }
+        }
+        .habitsCard()
+    }
+
+    private var exampleWeightChartPreview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("7-DAY AVG (EXAMPLE)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(HabitsColor.textDim)
+                Spacer()
+                HabitsPill(text: "Trending down", tone: .green)
+            }
+            ExampleTrendLine()
+                .stroke(HabitsColor.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                .frame(height: 56)
+        }
+        .habitsCard()
+    }
+
+    private struct ExampleTrendLine: Shape {
+        func path(in rect: CGRect) -> Path {
+            // Fractions are screen y-position (0 = top), not weight value —
+            // "trending down" means the line slopes toward the bottom of
+            // the frame as x increases, so these values must *increase*.
+            let values: [CGFloat] = [0.15, 0.3, 0.25, 0.45, 0.4, 0.6, 0.55, 0.75, 0.7, 0.9]
+            var path = Path()
+            for (index, value) in values.enumerated() {
+                let x = rect.width * CGFloat(index) / CGFloat(values.count - 1)
+                let y = rect.height * value
+                if index == 0 {
+                    path.move(to: CGPoint(x: x, y: y))
+                } else {
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+            return path
         }
     }
 
@@ -195,6 +319,15 @@ struct OnboardingView: View {
             title("You're all set.")
             copy("Your sequence is loaded. Your habits are waiting. Let's go.")
             copy("Not ready to track everything at once? That's completely fine. Head to Settings to choose which habits are right for you — workouts, journaling, and weight tracking can each be turned on or off independently.")
+
+            // White variant, tried here vs. the ondark variant on the
+            // login screen, per request, so both can be compared in context.
+            Image("OndoloopLockupWhite")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: 80)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
         }
     }
 
@@ -292,8 +425,7 @@ struct OnboardingView: View {
 
     private var primaryButtonLabel: String {
         if viewModel.step == 3 {
-            let name = rotationBuilderViewModel.programs.first(where: { $0.id == selectedProgramID })?.name
-            return name.map { "Start with \($0)" } ?? "Choose a sequence"
+            return selectedProgramID == nil ? "Choose a sequence" : "Start with this"
         }
         return viewModel.isLastVisibleStep ? "Get started" : "Next"
     }
