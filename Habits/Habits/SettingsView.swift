@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var showPasswordSheet = false
     @State private var showSequenceBuilder = false
     @State private var showProgramReset = false
+    @State private var pendingBuildOwn = false
     @Environment(\.openURL) private var openURL
 
     init(userID: UUID) {
@@ -83,19 +84,21 @@ struct SettingsView: View {
                     showSequenceBuilder = false
                 }
             }
-            .sheet(isPresented: $showProgramReset) {
+            .sheet(isPresented: $showProgramReset, onDismiss: {
+                // Runs after the reset sheet's own dismiss animation
+                // finishes — presenting the builder sheet before that
+                // completes can drop its transition.
+                guard pendingBuildOwn else { return }
+                pendingBuildOwn = false
+                rotationBuilderViewModel.openBuilder()
+                showSequenceBuilder = true
+            }) {
                 ProgramResetSheet(
                     viewModel: rotationBuilderViewModel,
                     onDismiss: { showProgramReset = false },
                     onBuildOwn: {
+                        pendingBuildOwn = true
                         showProgramReset = false
-                        // Let the reset sheet's dismiss animation finish before
-                        // presenting the builder — presenting both at once on
-                        // the same view can drop the second sheet's transition.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            rotationBuilderViewModel.openBuilder()
-                            showSequenceBuilder = true
-                        }
                     }
                 )
             }

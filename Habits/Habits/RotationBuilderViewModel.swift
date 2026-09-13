@@ -93,10 +93,31 @@ final class RotationBuilderViewModel: ObservableObject {
     func openBuilder(seed: [WorkoutLibraryRow]? = nil) {
         saveErrorMessage = nil
         hideCustomWorkoutForm()
-        let base = seed ?? currentRotation ?? DefaultWorkouts.rotation.map {
-            WorkoutLibraryRow(id: $0.id, name: $0.name, category: $0.category, icon: nil, is_global: true, created_by: nil)
-        }
+        let base = seed ?? currentRotation ?? resolvedDefaultRotation()
         stagedSlots = base.map { StagedRotationSlot(workoutId: $0.id) }
+    }
+
+    /// `DefaultWorkouts`'s ids (e.g. "peloton") predate `workout_library` and
+    /// never match a real row there — resolve each default against its
+    /// matching global library row by name so staged slots carry real UUIDs
+    /// instead of ids `workout(forID:)`/`save_user_rotation` can't recognize.
+    /// Entries that can't be resolved (e.g. the library hasn't loaded yet)
+    /// are dropped rather than staged broken.
+    private static let defaultWorkoutLibraryNames: [String: String] = [
+        "peloton": "Peloton Ride",
+        "upper_push": "Upper Push",
+        "upper_pull": "Upper Pull",
+        "lower": "Lower Body",
+        "yoga": "Yoga",
+    ]
+
+    private func resolvedDefaultRotation() -> [WorkoutLibraryRow] {
+        DefaultWorkouts.rotation.compactMap { defaultWorkout in
+            guard let libraryName = Self.defaultWorkoutLibraryNames[defaultWorkout.id] else { return nil }
+            return workoutLibrary.first {
+                $0.is_global && $0.name.caseInsensitiveCompare(libraryName) == .orderedSame
+            }
+        }
     }
 
     func closeBuilder() {
@@ -140,15 +161,21 @@ final class RotationBuilderViewModel: ObservableObject {
     /// web app calls — a single atomic replace of the user's rotation rows,
     /// rather than a client-side delete-then-insert that could race or
     /// partially fail. Returns whether the save succeeded.
+    ///
+    /// Resets progress *before* replacing the sequence: these are two
+    /// separate writes, so if the second one fails partway, this ordering's
+    /// worst case is progress reset against the still-current sequence,
+    /// rather than the new sequence paired with a stale `rotation_index`
+    /// (which could point `TodayViewModel.suggested` at the wrong workout).
     @discardableResult
     func saveStagedRotation() async -> Bool {
         guard let slots = stagedSlots, slots.count >= 2, !isSaving else { return false }
         isSaving = true
         saveErrorMessage = nil
         do {
+            try await resetRotationProgress()
             let params = SaveUserRotationParams(p_user_id: userID, p_workout_ids: slots.map(\.workoutId))
             try await SupabaseManager.client.rpc("save_user_rotation", params: params).execute()
-            try await resetRotationProgress()
             await loadInitial()
             stagedSlots = nil
             hideCustomWorkoutForm()
@@ -244,9 +271,9 @@ final class RotationBuilderViewModel: ObservableObject {
         isApplyingProgram = true
         applyProgramErrorMessage = nil
         do {
+            try await resetRotationProgress()
             let params = SaveUserRotationParams(p_user_id: userID, p_workout_ids: program.workouts.map(\.id))
             try await SupabaseManager.client.rpc("save_user_rotation", params: params).execute()
-            try await resetRotationProgress()
             await loadInitial()
             isApplyingProgram = false
             return true
