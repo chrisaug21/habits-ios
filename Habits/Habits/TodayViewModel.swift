@@ -173,6 +173,28 @@ final class TodayViewModel: ObservableObject {
     }
 
     private func fetchOrCreateState() async throws -> StateRow {
+        if let existing = try await fetchState() { return existing }
+        let payload = StateUpsertPayload(user_id: userID, rotation_index: 0, action_date: nil)
+        do {
+            return try await SupabaseManager.client
+                .from("state")
+                .upsert(payload, onConflict: "user_id")
+                .select("id, rotation_index, action_date")
+                .single()
+                .execute()
+                .value
+        } catch let error as PostgrestError where error.code == "23505" {
+            // Today and Log each hold their own state, so both can race to
+            // create the first row for a brand-new user_id at once — the
+            // loser's insert bounces off state's own id/user_id uniqueness
+            // rather than actually failing, so re-reading picks up whichever
+            // row won.
+            if let existing = try await fetchState() { return existing }
+            throw error
+        }
+    }
+
+    private func fetchState() async throws -> StateRow? {
         let rows: [StateRow] = try await SupabaseManager.client
             .from("state")
             .select("id, rotation_index, action_date")
@@ -181,15 +203,7 @@ final class TodayViewModel: ObservableObject {
             .limit(1)
             .execute()
             .value
-        if let existing = rows.first { return existing }
-        let payload = StateUpsertPayload(user_id: userID, rotation_index: 0, action_date: nil)
-        return try await SupabaseManager.client
-            .from("state")
-            .upsert(payload, onConflict: "user_id")
-            .select("id, rotation_index, action_date")
-            .single()
-            .execute()
-            .value
+        return rows.first
     }
 
     private func fetchOrCreatePreferences() async throws -> UserPreferencesRow {
