@@ -338,13 +338,13 @@ is big enough to span **three passes** rather than one PR, because one
 piece (onboarding) structurally depends on another (the rotation builder)
 that hasn't been built yet:
 
-1. **This pass**: Account, Today Tab toggles, Feedback, Account deletion
-   (below) — none of these depend on anything not already built.
-2. **Next pass**: Workout Sequence builder — reorder/add/remove workouts,
-   custom workouts, reset to a starter program. The biggest single piece
-   of `settings.js`; fully self-contained.
-3. **Then**: Onboarding/FTUX replay ("Tutorial") — in the web app this
-   reuses the same program-picker/rotation-builder screens
+1. **Pass 1** (below, done — PR #6): Account, Today Tab toggles, Feedback,
+   Account deletion — none of these depend on anything not already built.
+2. **Pass 2** (see addendum below, done — PR #7): Workout Sequence builder —
+   reorder/add/remove workouts, custom workouts, reset to a starter program.
+   The biggest single piece of `settings.js`; fully self-contained.
+3. **Pass 3** (not yet built): Onboarding/FTUX replay ("Tutorial") — in the
+   web app this reuses the same program-picker/rotation-builder screens
    (`renderOnboardingStep`, `openCustomBuilderFromFtux`), so it's built
    after pass 2 exists rather than duplicating that UI ahead of it.
 
@@ -396,6 +396,57 @@ deletes rows (no new tables) from `history`/`journal`/`weight`/`state`/
 user_preferences (user_id, show_workout_card, show_journal_card, show_weight_card)
 -- + Supabase Auth: user.email, user.user_metadata.{first_name,last_name}, password
 ```
+
+## Phase 8 — Settings Screen, pass 2: Workout Sequence builder (spec addendum, decided 2026-09-13)
+
+Pass 2 of the Settings addendum above. Brings the web app's rotation-builder
+and program-picker (`settings.js`) natively.
+
+**In scope:**
+
+- Read-only summary card on Settings showing the current sequence (custom
+  `user_rotation`, or the hardcoded default list if none saved yet), with
+  "Customize My Sequence"/"Edit Sequence" and "Reset to a Program" actions.
+- **Builder sheet**: reorder (drag), add from the workout library (grouped
+  "Global" vs "Your Workouts"), remove (down to a 2-workout minimum), and add
+  a custom workout (name + category) — saved to `workout_library` and
+  appended to the sequence in one step, matching the web app's "Add your
+  own" flow. Saves the whole sequence in one shot via the same
+  `save_user_rotation` RPC the web app calls (atomic replace of the user's
+  `user_rotation` rows), then resets rotation progress
+  (`state.rotation_index` back to 0) so "next up" starts from the top of the
+  new sequence.
+- **Program reset sheet**: pick from the shared `programs` table's starter
+  programs (global or user-created) to replace the current sequence
+  wholesale, behind a destructive-action confirmation ("this cannot be
+  undone"); or hand off to the builder sheet to build one from scratch
+  instead.
+- The hardcoded default rotation's ids (`"peloton"`, `"upper_push"`, etc., in
+  `DefaultWorkouts`) predate `workout_library` and were never real rows
+  there — the builder resolves each one against its matching global
+  `workout_library` row by name before staging it, rather than staging an
+  id nothing can look up.
+
+**Data model** — new read/write access to two tables the web app already
+has, no schema changes:
+
+```
+programs         (id, name, description, is_global, created_by)
+program_workouts (id, program_id, workout_id, position)
+```
+Reuses `workout_library`/`user_rotation` (already modeled above) and the
+existing `save_user_rotation` Postgres RPC.
+
+**Explicitly out of scope for this pass:**
+
+- Onboarding/FTUX replay (pass 3 above) — still pending; reuses this
+  builder's UI once built.
+- A single-transaction replace-and-reset RPC. The sequence-save and
+  progress-reset are two separate writes, ordered so a failure between them
+  leaves progress reset against the *still-current* sequence rather than
+  paired with the new one — a real gap, but a narrow one, and closing it
+  fully means changing a function the web app also calls. Deferred rather
+  than done unilaterally.
 
 ## Later phases (not speced yet)
 
