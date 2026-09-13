@@ -134,6 +134,7 @@ struct HabitsGhostButtonStyle: ButtonStyle {
                 .foregroundStyle(tint ?? HabitsColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, size == .large ? 18 : 12)
+                .padding(.horizontal, size == .large ? 20 : 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(pressed ? HabitsColor.surface : .clear)
