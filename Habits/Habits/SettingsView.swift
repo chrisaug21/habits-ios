@@ -28,10 +28,13 @@ struct SettingsView: View {
     @State private var showPasswordSheet = false
     @State private var showSequenceBuilder = false
     @State private var showProgramReset = false
+    @State private var showTutorial = false
     @State private var pendingBuildOwn = false
     @Environment(\.openURL) private var openURL
+    private let userID: UUID
 
     init(userID: UUID) {
+        self.userID = userID
         _settingsViewModel = StateObject(wrappedValue: SettingsViewModel(userID: userID))
         _weightViewModel = StateObject(wrappedValue: WeightViewModel(userID: userID))
         _rotationBuilderViewModel = StateObject(wrappedValue: RotationBuilderViewModel(userID: userID))
@@ -78,6 +81,20 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPasswordSheet, onDismiss: settingsViewModel.resetPasswordFields) {
                 passwordSheet
+            }
+            .fullScreenCover(isPresented: $showTutorial) {
+                OnboardingView(userID: userID, mode: .tutorial) {
+                    showTutorial = false
+                }
+            }
+            .onChange(of: auth.passwordRecoveryPending) {
+                // A password-reset email link landed back in the app
+                // (`.passwordRecovery` auth event) — open the same sheet
+                // used for a normal password change, matching the web
+                // app's PASSWORD_RECOVERY handling in auth.js.
+                guard auth.passwordRecoveryPending else { return }
+                auth.passwordRecoveryPending = false
+                showPasswordSheet = true
             }
             .sheet(isPresented: $showSequenceBuilder, onDismiss: rotationBuilderViewModel.closeBuilder) {
                 RotationBuilderSheet(viewModel: rotationBuilderViewModel) {
@@ -289,6 +306,8 @@ struct SettingsView: View {
     private var appCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionEyebrow("APP")
+            Button("Replay Tutorial") { showTutorial = true }
+                .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Change Password") { showPasswordSheet = true }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Send Feedback") { openURL(feedbackURL) }

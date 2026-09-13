@@ -41,6 +41,24 @@ TBD — populate this once the Xcode project is scaffolded (GETTING_STARTED.md
 Phase 2). Update this section then so future sessions don't have to
 rediscover the layout.
 
+## Testing protocol
+- After a change, do one lightweight simulator smoke pass — build, launch,
+  `inspect` (the accessibility tree, returned as text) to confirm nothing
+  crashed and key elements are present. Use `inspect`, not `screenshot`,
+  for this loop — don't tap-screenshot-tap-screenshot through a flow.
+- `screenshot` returns an image and costs far more than `inspect`. Cap it
+  at one screenshot per new or changed screen/visual state, taken once
+  after `inspect` already confirms nothing crashed — not one per tap, not
+  a before/after pair, not a re-check after every small tweak. For a
+  multi-screen flow (e.g. onboarding), that's one screenshot per distinct
+  screen, not per gesture. Skip screenshots entirely for changes with no
+  visual surface (data/logic-only changes) — `inspect` alone covers those.
+- The screenshot's job is to catch objective breakage — asset didn't
+  render, wrong aspect ratio, obviously broken layout, wrong dark-mode
+  color. Taste and polish (does the spacing feel right, does it look
+  good) is Chris's call — hand those off with a specific checklist
+  instead of iterating on them solo.
+
 ## Versioning
 The Xcode project has two version fields, both in the `Habits` target →
 **General** tab → **Identity** section:

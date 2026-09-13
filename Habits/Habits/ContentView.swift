@@ -26,6 +26,7 @@ struct ContentView: View {
 
 private struct SignedInView: View {
     @EnvironmentObject var auth: AuthViewModel
+    @State private var showOnboarding = false
 
     var body: some View {
         if let userID = auth.session?.user.id {
@@ -38,6 +39,18 @@ private struct SignedInView: View {
                     .tabItem { Label("Stats", systemImage: "chart.bar.fill") }
                 SettingsView(userID: userID)
                     .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+            }
+            .onAppear {
+                // Mirrors the web app's `hasPendingWelcome() && !hasDismissedWelcome()`
+                // check on initApp — shows the FTUX once per account, right
+                // after signup, the first time this device sees it signed in.
+                showOnboarding = OnboardingStore.hasPendingWelcome(for: userID)
+                    && !OnboardingStore.hasDismissedWelcome(for: userID)
+            }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView(userID: userID, mode: .firstRun) {
+                    showOnboarding = false
+                }
             }
         }
     }
