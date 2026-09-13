@@ -14,9 +14,22 @@
 		709649843053C08700480E4F /* Habits.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Habits.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7096F19030573D98008BF1AB /* Exceptions for "Habits" folder in "Habits" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 709649833053C08700480E4F /* Habits */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		709649863053C08700480E4F /* Habits */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7096F19030573D98008BF1AB /* Exceptions for "Habits" folder in "Habits" target */,
+			);
 			path = Habits;
 			sourceTree = "<group>";
 		};
@@ -266,6 +279,7 @@
 				DEVELOPMENT_TEAM = 7LFH2PYN32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Habits/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ondoloop;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Ondoloop reads your weight from Health so it can automatically keep your weight log up to date.";
@@ -303,6 +317,7 @@
 				DEVELOPMENT_TEAM = 7LFH2PYN32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Habits/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ondoloop;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Ondoloop reads your weight from Health so it can automatically keep your weight log up to date.";
