@@ -94,6 +94,21 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Used for the password-recovery deep-link flow in `ContentView.swift`,
+    /// which needs to update the password without a `SettingsViewModel`
+    /// around (the recovery sheet can open before Settings is ever visited).
+    /// Mirrors `SettingsViewModel.changePassword()`'s normal-change path.
+    @discardableResult
+    func updatePassword(_ newPassword: String) async -> Bool {
+        do {
+            _ = try await SupabaseManager.client.auth.update(user: UserAttributes(password: newPassword))
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func signOut() async {
         do {
             try await SupabaseManager.client.auth.signOut()

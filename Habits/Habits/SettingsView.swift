@@ -87,15 +87,6 @@ struct SettingsView: View {
                     showTutorial = false
                 }
             }
-            .onChange(of: auth.passwordRecoveryPending) {
-                // A password-reset email link landed back in the app
-                // (`.passwordRecovery` auth event) — open the same sheet
-                // used for a normal password change, matching the web
-                // app's PASSWORD_RECOVERY handling in auth.js.
-                guard auth.passwordRecoveryPending else { return }
-                auth.passwordRecoveryPending = false
-                showPasswordSheet = true
-            }
             .sheet(isPresented: $showSequenceBuilder, onDismiss: rotationBuilderViewModel.closeBuilder) {
                 RotationBuilderSheet(viewModel: rotationBuilderViewModel) {
                     showSequenceBuilder = false
@@ -435,7 +426,11 @@ struct SettingsView: View {
 
 /// Mirrors the web app's `password-modal` — a dedicated overlay for changing
 /// password, rather than inline fields sitting on the main Settings page.
-private struct PasswordChangeSheet: View {
+/// Not private: also used from `ContentView.swift`'s `SignedInView` for the
+/// password-recovery deep-link flow, which needs to present it regardless of
+/// which tab is currently active — see the comment there for why this
+/// couldn't just live inside SettingsView.
+struct PasswordChangeSheet: View {
     @Binding var newPassword: String
     let isSaving: Bool
     let errorMessage: String?
