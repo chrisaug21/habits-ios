@@ -68,6 +68,13 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Set alongside a successful `resetPasswordForEmail` call and consumed
+    /// in `handleDeepLink`. Persisted (not just an in-memory flag) because
+    /// the normal path is: request the email, quit the app entirely, then
+    /// tap the link from Mail later — which cold-launches a fresh
+    /// `AuthViewModel`, wiping any in-memory state.
+    private static let pendingPasswordRecoveryKey = "com.chrisaug.habits.pendingPasswordRecovery"
+
     @discardableResult
     func sendPasswordReset(email: String) async -> Bool {
         errorMessage = nil
@@ -76,6 +83,7 @@ final class AuthViewModel: ObservableObject {
                 email,
                 redirectTo: passwordRecoveryRedirectURL
             )
+            UserDefaults.standard.set(true, forKey: Self.pendingPasswordRecoveryKey)
             return true
         } catch {
             errorMessage = Self.authErrorMessage(error)
@@ -86,9 +94,22 @@ final class AuthViewModel: ObservableObject {
     /// Consumes a `com.chrisaug.habits://` deep link (password-reset or
     /// magic-link redirect) and turns it into a session, same as the web
     /// app's browser-based redirect handling.
+    ///
+    /// This project uses supabase-swift's default PKCE flow, and device
+    /// testing confirmed the redirect URL it actually sends back is just
+    /// `login-callback?code=<uuid>` — no `type=recovery` or other marker.
+    /// (The SDK's own `.passwordRecovery` auth event doesn't fire for PKCE
+    /// either — that only exists in the legacy implicit-flow code path.) So
+    /// there's no way to detect a recovery link from the URL or the auth
+    /// event; instead we track "a reset was requested" ourselves via
+    /// `pendingPasswordRecoveryKey` and consume that flag here.
     func handleDeepLink(_ url: URL) async {
         do {
             try await SupabaseManager.client.auth.session(from: url)
+            if UserDefaults.standard.bool(forKey: Self.pendingPasswordRecoveryKey) {
+                UserDefaults.standard.removeObject(forKey: Self.pendingPasswordRecoveryKey)
+                passwordRecoveryPending = true
+            }
         } catch {
             errorMessage = Self.authErrorMessage(error)
         }
