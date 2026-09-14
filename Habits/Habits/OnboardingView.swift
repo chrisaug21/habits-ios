@@ -21,6 +21,10 @@ struct OnboardingView: View {
     @StateObject private var rotationBuilderViewModel: RotationBuilderViewModel
     @State private var selectedProgramID: String?
     @State private var showBuilder = false
+    /// Measured size of the scroll viewport, used to let short steps'
+    /// content center vertically instead of sticking to the top with a
+    /// block of empty space below it.
+    @State private var viewportHeight: CGFloat = 0
     let onFinished: () -> Void
 
     init(userID: UUID, mode: OnboardingMode, onFinished: @escaping () -> Void) {
@@ -33,10 +37,24 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             header
             ScrollView {
-                stepContent
-                    .padding(20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    stepContent
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: viewportHeight)
             }
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { viewportHeight = proxy.size.height }
+                        .onChange(of: proxy.size.height) { newValue in
+                            viewportHeight = newValue
+                        }
+                }
+            )
             footer
         }
         .background(HabitsColor.bg.ignoresSafeArea())
@@ -141,6 +159,7 @@ struct OnboardingView: View {
             title("Small actions. Big change.")
             copy("The science is clear: consistency beats intensity every time. A short workout today is worth more than a perfect workout someday. Ondoloop sets you up with a workout sequence and helps you stay on track — day by day, at your own pace.")
             exampleSequencePreview
+                .padding(.top, 16)
         }
     }
 
@@ -150,6 +169,7 @@ struct OnboardingView: View {
             copy("Ondoloop gives you a personalized workout sequence — an ordered list of workouts that cycles day by day. Finish one, the next is waiting. Miss a day? No problem. Your sequence picks up exactly where you left off.")
             copy("No fixed days. No guilt. Just your next step, always ready.")
             exampleTodayPreview
+                .padding(.top, 16)
         }
     }
 
@@ -186,10 +206,12 @@ struct OnboardingView: View {
             copy("Daily tracking gives you the truth. Ondoloop shows your weight trend over time and your 7-day rolling average — the signal, not the noise.")
             copy("On iOS, Ondoloop can also read your weight straight from Apple Health — tap \"Sync from Health\" in Settings anytime your smart scale logs a new reading, and it lands in the same log automatically. This is read-only: Ondoloop never writes back to Health.")
             exampleWeightChartPreview
+                .padding(.top, 16)
             Text("Not ready to track weight yet? You can turn it off in Settings.")
                 .font(.system(size: 13))
                 .italic()
                 .foregroundStyle(HabitsColor.textDim)
+                .padding(.top, 8)
         }
     }
 
@@ -320,14 +342,12 @@ struct OnboardingView: View {
             copy("Your sequence is loaded. Your habits are waiting. Let's go.")
             copy("Not ready to track everything at once? That's completely fine. Head to Settings to choose which habits are right for you — workouts, journaling, and weight tracking can each be turned on or off independently.")
 
-            // White variant, tried here vs. the ondark variant on the
-            // login screen, per request, so both can be compared in context.
-            Image("OndoloopLockupWhite")
+            Image("OndoloopLockupOndark")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: 80)
                 .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, 20)
         }
     }
 
