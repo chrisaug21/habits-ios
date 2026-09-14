@@ -448,6 +448,90 @@ existing `save_user_rotation` Postgres RPC.
   fully means changing a function the web app also calls. Deferred rather
   than done unilaterally.
 
+## Phase 8 — Signup, Onboarding & Branding (spec addendum, decided 2026-09-13)
+
+Pass 3 of the Settings addendum above (Onboarding/FTUX replay), plus two
+pieces the original phase 8 plan didn't include: native signup, and a full
+pass of Ondoloop branding using the finished brand kit
+(`Ondoloop brand assets/`). Bundled together because the goal has shifted —
+see Status below — which makes self-serve signup real product surface, not
+a nice-to-have.
+
+**Status (supersedes Phase 1's "no new signup flow" and "Public App Store
+submission... deliberately deferred"):** this app is still in a build-and-test
+phase, but the end goal is now real App Store submission, not an
+indefinitely single-user tool. Signup, onboarding, and branding are being
+built natively rather than deferred to the web app.
+
+**Prior art:** every piece below already exists and is live in the web app
+(`habits` repo) — `auth.js`, `settings.js`, `index.html`. This pass ports
+that exact UX/content natively rather than inventing new patterns.
+
+**In scope:**
+
+- **Signup**: email + password (8-char minimum), the same `auth.signUp`
+  call the web app makes, same error-message mapping (`authErrorMessage` in
+  `auth.js`) ported to Swift — "Incorrect email or password", "An account
+  with this email already exists", "Too many attempts...", etc. If Supabase
+  returns no session (email confirmation required), show the same "check
+  your email" message the web app shows rather than treating it as an
+  error.
+- **Password reset ("Forgot password?" on the login screen)**: calls
+  `auth.resetPasswordForEmail`, same as web — but unlike web (which
+  redirects back into the browser), iOS handles it as a true in-app deep
+  link: a custom URL scheme (`com.chrisaug.habits://login-callback`)
+  registered in the Xcode target and added to Supabase's Auth redirect
+  allowlist, caught via `.onOpenURL` → `auth.session(from: url)`. The
+  resulting `.passwordRecovery` auth event opens the same
+  `PasswordChangeSheet` already built in Settings Pass 1
+  (`SettingsView.swift`), rather than building a second password-change UI.
+- **Onboarding/FTUX** (Settings Pass 3, now built): the same 6-step flow as
+  `index.html`'s `#welcome-screen` / `settings.js`'s
+  `renderOnboardingStep`/`openWelcomeScreen`, same copy, same step order:
+  1. Why Habits/Ondoloop exists ("Small actions. Big change.")
+  2. How the rotation works ("Your sequence. Your pace.")
+  3. Program picker / build-your-own — reuses the Pass 2
+     `WorkoutSequenceViews` builder sheet exactly like web's
+     `openCustomBuilderFromFtux` does. Shown on first-run only; skipped on
+     tutorial replay (matches web's `getOnboardingVisibleSteps`).
+  4. Journal explainer (intention / gratitude / one thing)
+  5. Weight tracking explainer — **plus new content the web app doesn't
+     have**: an explanation of the native HealthKit weight sync (Settings'
+     "Sync from Health" button, read-only, pulls recent body-mass samples
+     into the same `weight` table), since that's unique to the iOS app.
+  6. Wrap-up, points to Settings for toggling things off
+
+  Shown automatically on first sign-in; replayable anytime via a new
+  "Tutorial" row in Settings (mirrors web's `tutorial-btn`).
+- **Seen-tutorial tracking**: local only, matching web exactly — web uses
+  `localStorage["<userId>:<BASE_WELCOMED_KEY>"] = "pending" | "1"`; iOS uses
+  `UserDefaults` with the same per-user-id scoping and pending/dismissed
+  states. Not stored in Supabase — it's a UI flag, not app data.
+- **Branding**: `LoginView`/signup screens and onboarding restyled to the
+  app's actual dark theme (`HabitsColor`) with real logo/wordmark assets
+  from `Ondoloop brand assets/logo/` (white/ondark variants, matching the
+  app's dark-only theme) instead of plain text.
+- **App icon**: swap `Assets.xcassets/AppIcon.appiconset`'s placeholder "H"
+  monogram for the real Ondoloop icon exports (`app-icon-1024.png` for the
+  default appearance, `app-icon-reversed-1024.png` for dark) — pulled
+  forward from the originally-later "Phase 9 — Branding consistency" plan
+  in GETTING_STARTED.md, since the assets already exist.
+
+**Explicitly out of scope for this pass:**
+
+- **Sign in with Apple** — flagged under "Before public App Store
+  submission" above; only required if the app offers third-party/social
+  login (Google, Facebook, etc.), which plain email/password signup does
+  not trigger. Not needed for this pass.
+- Real account deletion, privacy policy, and the rest of the
+  "Before public App Store submission" checklist above — unchanged, still
+  pending.
+- Any change to the web app itself.
+
+**Data model** — no schema changes. Reuses Supabase Auth's built-in
+signup/reset endpoints; the tutorial-seen flag is local-only (`UserDefaults`),
+not a new column or table.
+
 ## Later phases (not speced yet)
 
 Journal-as-its-own-screen remains as an additive native screen after

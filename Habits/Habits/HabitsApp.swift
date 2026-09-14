@@ -15,6 +15,9 @@ struct HabitsApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(auth)
+                .onOpenURL { url in
+                    Task { await auth.handleDeepLink(url) }
+                }
         }
     }
 }

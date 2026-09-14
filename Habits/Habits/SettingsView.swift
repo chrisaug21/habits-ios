@@ -28,10 +28,13 @@ struct SettingsView: View {
     @State private var showPasswordSheet = false
     @State private var showSequenceBuilder = false
     @State private var showProgramReset = false
+    @State private var showTutorial = false
     @State private var pendingBuildOwn = false
     @Environment(\.openURL) private var openURL
+    private let userID: UUID
 
     init(userID: UUID) {
+        self.userID = userID
         _settingsViewModel = StateObject(wrappedValue: SettingsViewModel(userID: userID))
         _weightViewModel = StateObject(wrappedValue: WeightViewModel(userID: userID))
         _rotationBuilderViewModel = StateObject(wrappedValue: RotationBuilderViewModel(userID: userID))
@@ -78,6 +81,11 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPasswordSheet, onDismiss: settingsViewModel.resetPasswordFields) {
                 passwordSheet
+            }
+            .fullScreenCover(isPresented: $showTutorial) {
+                OnboardingView(userID: userID, mode: .tutorial) {
+                    showTutorial = false
+                }
             }
             .sheet(isPresented: $showSequenceBuilder, onDismiss: rotationBuilderViewModel.closeBuilder) {
                 RotationBuilderSheet(viewModel: rotationBuilderViewModel) {
@@ -289,6 +297,8 @@ struct SettingsView: View {
     private var appCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionEyebrow("APP")
+            Button("Replay Tutorial") { showTutorial = true }
+                .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Change Password") { showPasswordSheet = true }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Send Feedback") { openURL(feedbackURL) }
@@ -416,7 +426,11 @@ struct SettingsView: View {
 
 /// Mirrors the web app's `password-modal` — a dedicated overlay for changing
 /// password, rather than inline fields sitting on the main Settings page.
-private struct PasswordChangeSheet: View {
+/// Not private: also used from `ContentView.swift`'s `SignedInView` for the
+/// password-recovery deep-link flow, which needs to present it regardless of
+/// which tab is currently active — see the comment there for why this
+/// couldn't just live inside SettingsView.
+struct PasswordChangeSheet: View {
     @Binding var newPassword: String
     let isSaving: Bool
     let errorMessage: String?

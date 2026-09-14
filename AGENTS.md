@@ -36,6 +36,24 @@ making scope decisions.
 ## File structure
 TBD — populate once the Xcode project is scaffolded (GETTING_STARTED.md Phase 2).
 
+## Testing protocol
+- After a change, do one lightweight simulator smoke pass — build, launch,
+  `inspect` (the accessibility tree, returned as text) to confirm nothing
+  crashed and key elements are present. Use `inspect`, not `screenshot`,
+  for this loop — don't tap-screenshot-tap-screenshot through a flow.
+- `screenshot` returns an image and costs far more than `inspect`. Cap it
+  at one screenshot per new or changed screen/visual state, taken once
+  after `inspect` already confirms nothing crashed — not one per tap, not
+  a before/after pair, not a re-check after every small tweak. For a
+  multi-screen flow (e.g. onboarding), that's one screenshot per distinct
+  screen, not per gesture. Skip screenshots entirely for changes with no
+  visual surface (data/logic-only changes) — `inspect` alone covers those.
+- The screenshot's job is to catch objective breakage — asset didn't
+  render, wrong aspect ratio, obviously broken layout, wrong dark-mode
+  color. Taste and polish (does the spacing feel right, does it look
+  good) is Chris's call — hand those off with a specific checklist
+  instead of iterating on them solo.
+
 ## Versioning
 Two fields, both in the `Habits` target → General tab → Identity section:
 
@@ -60,6 +78,16 @@ string — nothing to update by hand beyond the two bump rules above. Add
 `HabitsVersionFooter()` to any new screen's content (pass `color:
 .secondary` on a screen that hasn't opted into the app's dark theme, like
 Settings currently hasn't).
+
+## Gotchas
+- `.frame(minHeight:)` centers its content by default when the content is
+  shorter than that height (`alignment` defaults to `.center`) — and inside
+  a `ScrollView`, a `Spacer` gets an unbounded height proposal and collapses
+  to its `minLength` instead of expanding, so a trailing `Spacer(minLength:
+  0)` does nothing there. To make short ScrollView content top-justify
+  instead of centering, pass `alignment: .top` to the `.frame(minHeight:)`
+  itself (see `OnboardingView.swift`'s step content) rather than relying on
+  a Spacer.
 
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable)
