@@ -80,13 +80,15 @@ struct WorkoutSequenceCard: View {
 
             VStack(spacing: 10) {
                 Button(viewModel.hasCustomRotation ? "Edit Sequence" : "Customize My Sequence") {
-                    viewModel.openBuilder()
-                    showBuilder = true
+                    runAfterTapFeedback {
+                        viewModel.openBuilder()
+                        showBuilder = true
+                    }
                 }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
 
                 Button("Reset to a Program") {
-                    showProgramReset = true
+                    runAfterTapFeedback { showProgramReset = true }
                 }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
             }

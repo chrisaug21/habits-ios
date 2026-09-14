@@ -290,11 +290,11 @@ struct SettingsView: View {
     private var appCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionEyebrow("APP")
-            Button("Replay Tutorial") { showTutorial = true }
+            Button("Replay Tutorial") { runAfterTapFeedback { showTutorial = true } }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
-            Button("Change Password") { showPasswordSheet = true }
+            Button("Change Password") { runAfterTapFeedback { showPasswordSheet = true } }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
-            Button("Privacy Policy") { openURL(Self.privacyPolicyURL) }
+            Button("Privacy Policy") { runAfterTapFeedback { openURL(Self.privacyPolicyURL) } }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Send Feedback") { openURL(feedbackURL) }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))

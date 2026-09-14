@@ -89,12 +89,9 @@ struct TodayView: View {
     }
 
     private static let topAnchor = "top"
-    private static let sheetPresentationDelay: TimeInterval = 0.08
 
     private func presentSheet(_ present: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.sheetPresentationDelay) {
-            present()
-        }
+        runAfterTapFeedback(present)
     }
 
     // MARK: - Header
@@ -599,7 +596,7 @@ private struct JournalEditorSheet: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button("Cancel", action: onDone)
+                    Button("Cancel") { runAfterTapFeedback(onDone) }
                         .buttonStyle(HabitsGhostButtonStyle(size: .large))
                     Button("Save") { Task { await save(confirmed: false) } }
                         .buttonStyle(HabitsPrimaryButtonStyle())
@@ -690,7 +687,7 @@ private struct WeightQuickEntryForm: View {
                     .stroke(HabitsColor.border, lineWidth: 1)
             )
             HStack(spacing: 10) {
-                Button("Cancel", action: onCancel)
+                Button("Cancel") { runAfterTapFeedback(onCancel) }
                     .buttonStyle(HabitsGhostButtonStyle(size: .large))
                 Button("Save") {
                     if let pounds = Double(text) { onSave(pounds) }

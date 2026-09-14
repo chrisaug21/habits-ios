@@ -44,6 +44,16 @@ enum HabitsColor {
     static let teal = Color(hex: 0x2dd4bf)
 }
 
+enum HabitsInteractionTiming {
+    static let tapFeedbackDelay: TimeInterval = 0.08
+}
+
+func runAfterTapFeedback(_ action: @escaping () -> Void) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + HabitsInteractionTiming.tapFeedbackDelay) {
+        action()
+    }
+}
+
 /// Shared scale animation for our button styles, driven by
 /// `ButtonStyle.Configuration.isPressed` — SwiftUI's own built-in press
 /// state — rather than a custom touch-tracking gesture.

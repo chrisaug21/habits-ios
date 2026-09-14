@@ -83,12 +83,18 @@ final class TodayViewModel: ObservableObject {
     }
 
     var undoLabel: String? {
-        guard let last = history.last else { return nil }
+        guard let last = latestUndoableEntry else { return nil }
         switch last.type {
         case "off": return "Rest Day"
         case "other": return last.note ?? "Other Activity"
         default: return workout(byID: last.type)?.name ?? last.type
         }
+    }
+
+    private var latestUndoableEntry: HistoryRow? {
+        let today = Self.todayStr()
+        guard let yesterday = Self.dateString(daysAgo: 1) else { return nil }
+        return history.last { $0.date == today || $0.date == yesterday }
     }
 
     func daysSinceLastDone(_ workoutID: String) -> Int? {
@@ -282,15 +288,26 @@ final class TodayViewModel: ObservableObject {
     }
 
     func undoLastEntry() async {
-        guard !isProcessing, let last = history.last else { return }
+        guard !isProcessing, let target = latestUndoableEntry else { return }
         let today = Self.todayStr()
         guard let yesterday = Self.dateString(daysAgo: 1) else { return }
-        guard last.date == today || last.date == yesterday else { return }
+        guard target.date == today || target.date == yesterday else { return }
 
         await runAction {
-            let remaining = Array(self.history.dropLast())
+            let removingToday = target.date == today
+            let remaining: [HistoryRow]
+            if removingToday {
+                remaining = self.history.filter { $0.date != today }
+            } else if let id = target.id {
+                remaining = self.history.filter { $0.id != id }
+            } else {
+                remaining = self.history.filter { $0 != target }
+            }
+
             var newIndex = self.rotationIndex
-            if last.advanced {
+            let targetWorkoutID = self.workout(byID: target.type)?.id
+            let rotationLooksAdvanced = target.advanced && targetWorkoutID != self.suggested?.id
+            if rotationLooksAdvanced {
                 let count = max(self.activeRotation.count, 1)
                 newIndex = ((self.rotationIndex - 1) % count + count) % count
             }
@@ -299,7 +316,14 @@ final class TodayViewModel: ObservableObject {
             }
             let newActionDate: String? = stillLockedToday ? today : nil
 
-            if let id = last.id {
+            if removingToday {
+                try await SupabaseManager.client
+                    .from("history")
+                    .delete()
+                    .eq("user_id", value: self.userID)
+                    .eq("date", value: today)
+                    .execute()
+            } else if let id = target.id {
                 try await SupabaseManager.client.from("history").delete().eq("id", value: id).execute()
             }
             try await self.updateState(rotationIndex: newIndex, actionDate: newActionDate)
