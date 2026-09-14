@@ -38,13 +38,12 @@ struct OnboardingView: View {
             header
             ScrollView {
                 VStack(spacing: 0) {
-                    Spacer(minLength: 0)
+                    Color.clear.frame(height: 12)
                     stepContent
                         .padding(20)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer(minLength: 0)
                 }
-                .frame(minHeight: viewportHeight)
+                .frame(minHeight: viewportHeight, alignment: .top)
             }
             .background(
                 GeometryReader { proxy in
@@ -159,7 +158,7 @@ struct OnboardingView: View {
             title("Small actions. Big change.")
             copy("The science is clear: consistency beats intensity every time. A short workout today is worth more than a perfect workout someday. Ondoloop sets you up with a workout sequence and helps you stay on track — day by day, at your own pace.")
             exampleSequencePreview
-                .padding(.top, 16)
+                .padding(.top, 28)
         }
     }
 
@@ -169,7 +168,7 @@ struct OnboardingView: View {
             copy("Ondoloop gives you a personalized workout sequence — an ordered list of workouts that cycles day by day. Finish one, the next is waiting. Miss a day? No problem. Your sequence picks up exactly where you left off.")
             copy("No fixed days. No guilt. Just your next step, always ready.")
             exampleTodayPreview
-                .padding(.top, 16)
+                .padding(.top, 28)
         }
     }
 
@@ -206,7 +205,7 @@ struct OnboardingView: View {
             copy("Daily tracking gives you the truth. Ondoloop shows your weight trend over time and your 7-day rolling average — the signal, not the noise.")
             copy("On iOS, Ondoloop can also read your weight straight from Apple Health — tap \"Sync from Health\" in Settings anytime your smart scale logs a new reading, and it lands in the same log automatically. This is read-only: Ondoloop never writes back to Health.")
             exampleWeightChartPreview
-                .padding(.top, 16)
+                .padding(.top, 28)
             Text("Not ready to track weight yet? You can turn it off in Settings.")
                 .font(.system(size: 13))
                 .italic()

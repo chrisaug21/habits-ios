@@ -79,6 +79,16 @@ string — nothing to update by hand beyond the two bump rules above. Add
 .secondary` on a screen that hasn't opted into the app's dark theme, like
 Settings currently hasn't).
 
+## Gotchas
+- `.frame(minHeight:)` centers its content by default when the content is
+  shorter than that height (`alignment` defaults to `.center`) — and inside
+  a `ScrollView`, a `Spacer` gets an unbounded height proposal and collapses
+  to its `minLength` instead of expanding, so a trailing `Spacer(minLength:
+  0)` does nothing there. To make short ScrollView content top-justify
+  instead of centering, pass `alignment: .top` to the `.frame(minHeight:)`
+  itself (see `OnboardingView.swift`'s step content) rather than relying on
+  a Spacer.
+
 ## Pre-push checklist
 1. Bump Marketing Version / Build number in Xcode (once applicable)
 2. Confirm the app builds and runs on device or simulator
