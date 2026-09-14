@@ -76,7 +76,7 @@ private struct PressFeedback<Content: View>: View {
             .onChange(of: isPressed) { _, pressed in
                 guard pressed else { return }
                 showMinimumFlash = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     showMinimumFlash = false
                 }
             }

@@ -89,6 +89,13 @@ struct TodayView: View {
     }
 
     private static let topAnchor = "top"
+    private static let sheetPresentationDelay: TimeInterval = 0.08
+
+    private func presentSheet(_ present: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.sheetPresentationDelay) {
+            present()
+        }
+    }
 
     // MARK: - Header
 
@@ -131,9 +138,7 @@ struct TodayView: View {
                         .buttonStyle(HabitsPrimaryButtonStyle())
                         .disabled(viewModel.isProcessing)
 
-                        Button("Log activity") {
-                            showLogActivitySheet = true
-                        }
+                        Button("Log activity") { presentSheet { showLogActivitySheet = true } }
                         .buttonStyle(HabitsGhostButtonStyle())
                         .disabled(viewModel.isProcessing)
                     }
@@ -281,10 +286,10 @@ struct TodayView: View {
                         journalField("One thing", oneThing)
                     }
                 }
-                Button("Edit") { showJournalSheet = true }
+                Button("Edit") { presentSheet { showJournalSheet = true } }
                     .buttonStyle(HabitsGhostButtonStyle())
             } else {
-                Button("Journal") { showJournalSheet = true }
+                Button("Journal") { presentSheet { showJournalSheet = true } }
                     .buttonStyle(HabitsPrimaryButtonStyle())
             }
         }
@@ -318,10 +323,10 @@ struct TodayView: View {
                 Text("\(entry.value_lbs, specifier: "%.1f") lbs")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(HabitsColor.textPrimary)
-                Button("Edit") { showWeightSheet = true }
+                Button("Edit") { presentSheet { showWeightSheet = true } }
                     .buttonStyle(HabitsGhostButtonStyle())
             } else {
-                Button("Log Weight") { showWeightSheet = true }
+                Button("Log Weight") { presentSheet { showWeightSheet = true } }
                     .buttonStyle(HabitsPrimaryButtonStyle())
             }
         }
