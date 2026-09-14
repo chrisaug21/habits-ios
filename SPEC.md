@@ -132,9 +132,9 @@ requirement for it.
 Flagging now so these don't surprise you later, but none of this blocks
 phase 1 if you're staying on direct-install or TestFlight-internal:
 
-- **Sign in with Apple** must be offered as a login option alongside email/password (Apple App Review requirement whenever third-party/standard account creation exists).
-- **In-app account deletion** — users must be able to delete their account from within the app, not just by emailing you. Note: the client SDK's anon/publishable key can't delete a Supabase Auth user — this needs a server-side Edge Function using the service-role key, not a client-only change.
-- **Privacy policy URL** — required for submission; scrutiny is higher for apps requesting HealthKit access (health data can't be used for ads/tracking, purpose must be clearly disclosed in both the policy and the permission prompt copy).
+- **Sign in with Apple** is not required while Ondoloop exclusively uses its own email/password account system. Revisit if Google/Facebook/other third-party login is added.
+- **In-app account deletion** — users must be able to delete their account from within the app, not just by emailing you. Done via the web app's Netlify `delete-account` function, which uses a server-side Supabase service-role key to delete the Auth user and associated app data.
+- **Privacy policy URL** — required for submission; scrutiny is higher for apps requesting HealthKit access (health data can't be used for ads/tracking, purpose must be clearly disclosed in both the policy and the permission prompt copy). Hosted at `https://habits.chrisaug.com/privacy` and linked from iOS Settings.
 - App icon, screenshots, App Store description/metadata.
 
 ## Phase 8 — Today Screen (spec addendum, decided 2026-09-11)
@@ -367,14 +367,10 @@ that hasn't been built yet:
   link (pre-filled subject/body) rather than porting form-submission
   infrastructure for what is, for a single-user app, just a note to
   yourself.
-- **Account deletion**: mirrors what the web app *actually* does today,
-  not the theoretical ideal — the client's publishable key can't call
-  `auth.admin.deleteUser`, so the web app already falls back to: delete
-  the user's rows from `history`, `journal`, `weight`, `state`, and
-  `user_preferences`, then flag the account via `auth.updateUser` metadata
-  (`deletion_requested_at`/`_email`/`_name`), then sign out. Same fallback
-  here — a true Auth-user delete via Edge Function is still the
-  before-App-Store-submission item noted above, unchanged.
+- **Account deletion**: calls the web app's Netlify `delete-account`
+  function with the user's current Supabase access token. The function
+  verifies the token server-side, deletes the user's app rows, then deletes
+  the Supabase Auth user with the server-only service-role key.
 - Existing HealthKit sync, reminder toggle, and Sign Out stay as-is.
 
 **Explicitly out of scope for this pass:**
@@ -384,8 +380,8 @@ that hasn't been built yet:
   web app's local storage cache, which the iOS app doesn't have (each
   screen's view model fetches fresh from Supabase); no native equivalent
   needed.
-- Real (non-fallback) account deletion — needs the server-side Edge
-  Function already flagged under "Before public App Store submission".
+- None for account deletion — the server-side function is now the real
+  delete path.
 
 **Data model** — no schema changes; reuses `user_preferences` (already
 modeled) plus Supabase Auth's built-in user metadata/password, and
@@ -523,9 +519,9 @@ that exact UX/content natively rather than inventing new patterns.
   submission" above; only required if the app offers third-party/social
   login (Google, Facebook, etc.), which plain email/password signup does
   not trigger. Not needed for this pass.
-- Real account deletion, privacy policy, and the rest of the
-  "Before public App Store submission" checklist above — unchanged, still
-  pending.
+- Privacy policy and real account deletion are now handled. Remaining public
+  submission work is App Store metadata, screenshots, support URL, and final
+  review notes.
 - Any change to the web app itself.
 
 **Data model** — no schema changes. Reuses Supabase Auth's built-in

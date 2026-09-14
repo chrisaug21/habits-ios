@@ -66,7 +66,17 @@ private struct PressFeedback<Content: View>: View {
     var body: some View {
         content(isPressed)
             .scaleEffect(isPressed ? scale : 1)
-            .animation(.easeOut(duration: 0.1), value: isPressed)
+            .brightness(isPressed ? 0.04 : 0)
+            .animation(.easeOut(duration: isPressed ? 0.03 : 0.16), value: isPressed)
+    }
+}
+
+private extension View {
+    /// Makes the whole drawn button rectangle tappable. Without an explicit
+    /// shape, SwiftUI can treat only the label's non-transparent pixels as
+    /// the hit area, which makes edge taps feel unreliable.
+    func habitsButtonHitShape(cornerRadius: CGFloat) -> some View {
+        contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 
@@ -96,8 +106,13 @@ struct HabitsPrimaryButtonStyle: ButtonStyle {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.white.opacity(pressed ? 0.14 : 0))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(isEnabled ? .clear : HabitsColor.border, lineWidth: 1)
                 )
+                .habitsButtonHitShape(cornerRadius: 16)
                 // Disabled needs to read as clearly greyed-out, not just a
                 // different fill — otherwise it looks the same as an enabled
                 // ghost/secondary button rather than an unavailable action.
@@ -137,12 +152,13 @@ struct HabitsGhostButtonStyle: ButtonStyle {
                 .padding(.horizontal, size == .large ? 20 : 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(pressed ? HabitsColor.surface : .clear)
+                        .fill(pressed ? (tint ?? HabitsColor.accent).opacity(0.18) : .clear)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke((tint ?? HabitsColor.borderActive).opacity(0.7), lineWidth: 1.25)
                 )
+                .habitsButtonHitShape(cornerRadius: 12)
                 .opacity(isEnabled ? 1 : 0.35)
         }
     }
@@ -159,9 +175,11 @@ struct HabitsChipButtonStyle: ButtonStyle {
                 .padding(.vertical, 8)
                 .background(HabitsColor.surface2)
                 .clipShape(Capsule())
+                .overlay(Capsule().fill(HabitsColor.accent.opacity(pressed ? 0.12 : 0)))
                 .overlay(
                     Capsule().stroke(pressed ? HabitsColor.accent : HabitsColor.border, lineWidth: 1)
                 )
+                .contentShape(Capsule())
         }
     }
 }
@@ -178,12 +196,13 @@ struct HabitsIconButtonStyle: ButtonStyle {
                 .frame(width: 44, height: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(pressed ? HabitsColor.surface2 : .clear)
+                        .fill(pressed ? HabitsColor.accent.opacity(0.16) : .clear)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(HabitsColor.border, lineWidth: 1)
                 )
+                .habitsButtonHitShape(cornerRadius: 10)
         }
     }
 }
@@ -196,6 +215,7 @@ struct HabitsRowButtonStyle: ButtonStyle {
         PressFeedback(scale: 0.98, isPressed: configuration.isPressed) { pressed in
             configuration.label
                 .opacity(pressed ? 0.7 : 1)
+                .contentShape(Rectangle())
         }
     }
 }
@@ -401,6 +421,7 @@ struct HabitsSegmentedControl<Item: Identifiable & Hashable>: View {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(item == selection ? HabitsColor.surface2 : .clear)
                         )
+                        .habitsButtonHitShape(cornerRadius: 10)
                 }
                 // Plain, not HabitsRowButtonStyle: this control sits above the
                 // ScrollView, not inside it, so it never had the scroll-vs-tap

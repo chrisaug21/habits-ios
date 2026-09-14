@@ -540,6 +540,11 @@ private struct JournalEditorSheet: View {
     @State private var oneThing = ""
     @State private var showNudge = false
     @State private var isSaving = false
+    @FocusState private var focusedField: JournalField?
+
+    private enum JournalField: Hashable {
+        case intention, gratitude, oneThing
+    }
 
     var body: some View {
         ScrollView {
@@ -548,9 +553,24 @@ private struct JournalEditorSheet: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(HabitsColor.textPrimary)
 
-                journalField("What's your intention for today?", text: $intention, placeholder: "Enter your intention…")
-                journalField("What are you grateful for?", text: $gratitude, placeholder: "Enter what you're grateful for…")
-                journalField("What's the one thing you'll get done today?", text: $oneThing, placeholder: "Enter your one thing…")
+                journalField(
+                    "What's your intention for today?",
+                    text: $intention,
+                    placeholder: "Enter your intention…",
+                    field: .intention
+                )
+                journalField(
+                    "What are you grateful for?",
+                    text: $gratitude,
+                    placeholder: "Enter what you're grateful for…",
+                    field: .gratitude
+                )
+                journalField(
+                    "What's the one thing you'll get done today?",
+                    text: $oneThing,
+                    placeholder: "Enter your one thing…",
+                    field: .oneThing
+                )
 
                 if showNudge {
                     VStack(alignment: .leading, spacing: 10) {
@@ -590,15 +610,29 @@ private struct JournalEditorSheet: View {
             intention = existing?.intention ?? ""
             gratitude = existing?.gratitude ?? ""
             oneThing = existing?.one_thing ?? ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                focusedField = .intention
+            }
         }
     }
 
-    private func journalField(_ label: String, text: Binding<String>, placeholder: String) -> some View {
+    private func journalField(_ label: String, text: Binding<String>, placeholder: String, field: JournalField) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(HabitsColor.textSecondary)
-            HabitsTextArea(placeholder: placeholder, text: text)
+            TextField(placeholder, text: text, axis: .vertical)
+                .lineLimit(3...6)
+                .foregroundStyle(HabitsColor.textPrimary)
+                .tint(HabitsColor.accent)
+                .focused($focusedField, equals: field)
+                .padding(14)
+                .background(HabitsColor.surface2)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(HabitsColor.border, lineWidth: 1)
+                )
         }
     }
 
@@ -625,6 +659,7 @@ private struct WeightQuickEntryForm: View {
     let onCancel: () -> Void
 
     @State private var text = ""
+    @FocusState private var isWeightFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 16) {
@@ -637,6 +672,7 @@ private struct WeightQuickEntryForm: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(HabitsColor.textPrimary)
                     .tint(HabitsColor.accent)
+                    .focused($isWeightFieldFocused)
                 Text("lbs")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(HabitsColor.textSecondary)
@@ -661,9 +697,12 @@ private struct WeightQuickEntryForm: View {
         .padding(.horizontal, 20)
         .padding(.top, 28)
         .padding(.bottom, 24)
-        .habitsSheet()
+        .habitsSheet(detents: [.height(230)])
         .onAppear {
             if let existingValue { text = String(existingValue) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                isWeightFieldFocused = true
+            }
         }
     }
 }

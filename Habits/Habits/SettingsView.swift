@@ -114,14 +114,7 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Everything", role: .destructive) {
                     Task {
-                        let displayName = [settingsViewModel.firstName, settingsViewModel.lastName]
-                            .filter { !$0.isEmpty }
-                            .joined(separator: " ")
-                        let deleted = await settingsViewModel.deleteAccount(
-                            email: currentUser?.email,
-                            displayName: displayName.isEmpty ? nil : displayName,
-                            existingMetadata: currentUser?.userMetadata ?? [:]
-                        )
+                        let deleted = await settingsViewModel.deleteAccount(accessToken: auth.session?.accessToken)
                         if deleted {
                             await auth.signOut()
                         }
@@ -301,11 +294,15 @@ struct SettingsView: View {
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Change Password") { showPasswordSheet = true }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
+            Button("Privacy Policy") { openURL(Self.privacyPolicyURL) }
+                .buttonStyle(HabitsGhostButtonStyle(size: .large))
             Button("Send Feedback") { openURL(feedbackURL) }
                 .buttonStyle(HabitsGhostButtonStyle(size: .large))
         }
         .habitsCard()
     }
+
+    private static let privacyPolicyURL = URL(string: "https://habits.chrisaug.com/privacy")!
 
     private var feedbackURL: URL {
         var components = URLComponents()

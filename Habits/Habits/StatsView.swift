@@ -421,7 +421,8 @@ struct StatsView: View {
                         // hiding on touch-up, matching "tap to see a day."
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let originX = geometry[proxy.plotAreaFrame].origin.x
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let originX = geometry[plotFrame].origin.x
                                 let x = value.location.x - originX
                                 if let label: String = proxy.value(atX: x) {
                                     selectedDateLabel = label

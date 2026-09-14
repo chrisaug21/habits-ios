@@ -9,6 +9,9 @@ import Supabase
 enum SupabaseManager {
     static let client = SupabaseClient(
         supabaseURL: SupabaseConfig.url,
-        supabaseKey: SupabaseConfig.publishableKey
+        supabaseKey: SupabaseConfig.publishableKey,
+        options: SupabaseClientOptions(
+            auth: .init(emitLocalSessionAsInitialSession: true)
+        )
     )
 }
