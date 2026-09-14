@@ -62,12 +62,24 @@ private struct PressFeedback<Content: View>: View {
     var scale: CGFloat = 0.96
     var isPressed: Bool
     @ViewBuilder var content: (Bool) -> Content
+    @State private var showMinimumFlash = false
+
+    private var isVisiblyPressed: Bool {
+        isPressed || showMinimumFlash
+    }
 
     var body: some View {
-        content(isPressed)
-            .scaleEffect(isPressed ? scale : 1)
-            .brightness(isPressed ? 0.04 : 0)
-            .animation(.easeOut(duration: isPressed ? 0.03 : 0.16), value: isPressed)
+        content(isVisiblyPressed)
+            .scaleEffect(isVisiblyPressed ? scale : 1)
+            .brightness(isVisiblyPressed ? 0.05 : 0)
+            .animation(.easeOut(duration: isVisiblyPressed ? 0.02 : 0.18), value: isVisiblyPressed)
+            .onChange(of: isPressed) { _, pressed in
+                guard pressed else { return }
+                showMinimumFlash = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                    showMinimumFlash = false
+                }
+            }
     }
 }
 
