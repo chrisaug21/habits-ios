@@ -613,7 +613,9 @@ private struct JournalEditorSheet: View {
             gratitude = existing?.gratitude ?? ""
             oneThing = existing?.one_thing ?? ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                focusedField = .intention
+                if focusedField == nil {
+                    focusedField = .intention
+                }
             }
         }
     }
