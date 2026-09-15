@@ -59,10 +59,12 @@ struct TodayView: View {
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
+                await weightViewModel.syncFromHealthKit()
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()
             }
             .task {
+                await weightViewModel.syncFromHealthKit()
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()
             }
@@ -532,15 +534,19 @@ private struct ChipFlow: View {
 // MARK: - Journal editor sheet
 
 private struct JournalEditorSheet: View {
+    private static let intentionHelpURL = URL(string: "https://health.clevelandclinic.org/how-to-set-intentions")!
+
     let existing: JournalRow?
     let checkSimilarity: (String) -> Bool
     let onSave: (String, String, String, Bool) async -> TodayViewModel.JournalSaveResult
     let onDone: () -> Void
 
+    @Environment(\.openURL) private var openURL
     @State private var intention = ""
     @State private var gratitude = ""
     @State private var oneThing = ""
     @State private var showNudge = false
+    @State private var showIntentionHelp = false
     @State private var isSaving = false
     @FocusState private var focusedField: JournalField?
 
@@ -608,6 +614,11 @@ private struct JournalEditorSheet: View {
             .padding(.bottom, 24)
         }
         .habitsSheet(detents: [.large])
+        .sheet(isPresented: $showIntentionHelp) {
+            IntentionHelpSheet {
+                openURL(Self.intentionHelpURL)
+            }
+        }
         .onAppear {
             intention = existing?.intention ?? ""
             gratitude = existing?.gratitude ?? ""
@@ -622,9 +633,22 @@ private struct JournalEditorSheet: View {
 
     private func journalField(_ label: String, text: Binding<String>, placeholder: String, field: JournalField) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(HabitsColor.textSecondary)
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(HabitsColor.textSecondary)
+                if field == .intention {
+                    Button {
+                        showIntentionHelp = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(HabitsColor.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Open intention setting suggestions")
+                }
+            }
             TextField(placeholder, text: text, axis: .vertical)
                 .lineLimit(3...6)
                 .foregroundStyle(HabitsColor.textPrimary)
@@ -652,6 +676,71 @@ private struct JournalEditorSheet: View {
         case .failed:
             break
         }
+    }
+}
+
+private struct IntentionHelpSheet: View {
+    let onOpenLearnMore: () -> Void
+
+    private let examples = [
+        "I will move through today with patience.",
+        "I will focus on one meaningful thing at a time.",
+        "I will be present with the people in front of me.",
+        "I will notice what gives me energy.",
+        "I will meet setbacks with curiosity instead of judgment.",
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(HabitsColor.accent)
+                    Text("Intention ideas")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(HabitsColor.textPrimary)
+                }
+
+                Text("An intention is less about what you will finish and more about how you want to show up today.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(HabitsColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(examples, id: \.self) { example in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(HabitsColor.accent)
+                                .padding(.top, 1)
+                            Text(example)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(HabitsColor.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(14)
+                .background(HabitsColor.surface2)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(HabitsColor.border, lineWidth: 1)
+                )
+
+                Button {
+                    onOpenLearnMore()
+                } label: {
+                    Label("Learn more", systemImage: "safari")
+                }
+                .buttonStyle(HabitsGhostButtonStyle(size: .large))
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+            .padding(.bottom, 24)
+        }
+        .habitsSheet(detents: [.medium, .large])
     }
 }
 

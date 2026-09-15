@@ -246,9 +246,8 @@ final class StatsViewModel: ObservableObject {
     }
 
     var otherEntries: [StatsOtherEntry] {
-        let rotationIDs = Set(activeWorkoutList.map(\.id))
         return rangeEntries
-            .filter { !rotationIDs.contains($0.type) }
+            .filter { $0.type == "other" }
             .sorted { $0.date > $1.date }
             .map { StatsOtherEntry(id: $0.id ?? 0, date: $0.date, note: $0.note) }
     }
