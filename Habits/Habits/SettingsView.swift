@@ -116,7 +116,7 @@ struct SettingsView: View {
                     Task {
                         let deleted = await settingsViewModel.deleteAccount(accessToken: auth.session?.accessToken)
                         if deleted {
-                            await auth.signOut()
+                            await auth.clearLocalSessionAfterAccountDeletion()
                         }
                     }
                 }

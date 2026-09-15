@@ -146,6 +146,8 @@ final class SettingsViewModel: ObservableObject {
             var request = URLRequest(url: Self.accountDeletionURL)
             request.httpMethod = "POST"
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("0", forHTTPHeaderField: "Content-Length")
 
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse else {

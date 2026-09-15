@@ -138,6 +138,17 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
+    /// Used after the server-side account-deletion function succeeds. At
+    /// that point the Auth user may already be gone, so making another
+    /// network revoke call can fail even though deletion succeeded.
+    func clearLocalSessionAfterAccountDeletion() async {
+        do {
+            try await SupabaseManager.client.auth.signOut(scope: .local)
+        } catch {
+            session = nil
+        }
+    }
+
     /// Ports the web app's `authErrorMessage` (auth.js) so sign-in/signup
     /// errors read the same on both platforms instead of raw Supabase text.
     static func authErrorMessage(_ error: Error) -> String {
