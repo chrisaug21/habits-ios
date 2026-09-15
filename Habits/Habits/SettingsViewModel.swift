@@ -128,31 +128,51 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
-    // Mirrors the web app's actual fallback (see SPEC.md): the client's
-    // publishable key can't call `auth.admin.deleteUser`, so this deletes the
-    // user's rows and flags the account via metadata instead of a true
-    // Auth-user delete, which needs a server-side Edge Function (tracked
-    // separately under "Before public App Store submission").
-    func deleteAccount(email: String?, displayName: String?, existingMetadata: [String: AnyJSON]) async -> Bool {
+    private static let accountDeletionURL = URL(string: "https://habits.chrisaug.com/.netlify/functions/delete-account")!
+
+    // True account deletion needs a server-side service-role key; the iOS app
+    // only sends the user's normal access token to the Netlify function.
+    func deleteAccount(accessToken: String?) async -> Bool {
         isDeletingAccount = true
         deleteErrorMessage = nil
         defer { isDeletingAccount = false }
-        do {
-            try await SupabaseManager.client.from("history").delete().eq("user_id", value: userID).execute()
-            try await SupabaseManager.client.from("journal").delete().eq("user_id", value: userID).execute()
-            try await SupabaseManager.client.from("weight").delete().eq("user_id", value: userID).execute()
-            try await SupabaseManager.client.from("state").delete().eq("user_id", value: userID).execute()
-            try await SupabaseManager.client.from("user_preferences").delete().eq("user_id", value: userID).execute()
 
-            var metadata = existingMetadata
-            metadata["deletion_requested_at"] = .string(ISO8601DateFormatter().string(from: Date()))
-            metadata["deletion_requested_email"] = email.map { .string($0) }
-            metadata["deletion_requested_name"] = displayName.map { .string($0) }
-            _ = try await SupabaseManager.client.auth.update(user: UserAttributes(data: metadata))
+        guard let accessToken, !accessToken.isEmpty else {
+            deleteErrorMessage = "Could not confirm your signed-in session. Please sign in again and retry."
+            return false
+        }
+
+        do {
+            var request = URLRequest(url: Self.accountDeletionURL)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                deleteErrorMessage = "Could not delete account. Please try again."
+                return false
+            }
+
+            guard (200..<300).contains(http.statusCode) else {
+                deleteErrorMessage = Self.accountDeletionErrorMessage(from: data) ?? "Could not delete account. Please try again."
+                return false
+            }
+
             return true
         } catch {
             deleteErrorMessage = error.localizedDescription
             return false
         }
+    }
+
+    private static func accountDeletionErrorMessage(from data: Data) -> String? {
+        guard
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let error = object["error"] as? String,
+            !error.isEmpty
+        else {
+            return nil
+        }
+        return error
     }
 }

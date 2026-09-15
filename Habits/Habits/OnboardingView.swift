@@ -49,7 +49,7 @@ struct OnboardingView: View {
                 GeometryReader { proxy in
                     Color.clear
                         .onAppear { viewportHeight = proxy.size.height }
-                        .onChange(of: proxy.size.height) { newValue in
+                        .onChange(of: proxy.size.height) { _, newValue in
                             viewportHeight = newValue
                         }
                 }
