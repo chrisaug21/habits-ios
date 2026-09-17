@@ -300,7 +300,7 @@ final class TodayViewModel: ObservableObject {
     }
 
     func undoLastEntry() async {
-        guard !isProcessing, let target = latestUndoableEntry else { return }
+        guard !isProcessing, hasLoadedWorkoutData, let target = latestUndoableEntry else { return }
         let today = Self.todayStr()
         guard let yesterday = Self.dateString(daysAgo: 1) else { return }
         guard target.date == today || target.date == yesterday else { return }
@@ -317,11 +317,8 @@ final class TodayViewModel: ObservableObject {
             }
 
             var newIndex = self.rotationIndex
-            let targetWorkoutID = self.workout(byID: target.type)?.id
-            let rotationLooksAdvanced = target.advanced && targetWorkoutID != self.suggested?.id
-            if rotationLooksAdvanced {
-                let count = max(self.activeRotation.count, 1)
-                newIndex = ((self.rotationIndex - 1) % count + count) % count
+            if target.advanced, let restoredIndex = self.rotationIndexBeforeUndoing(target) {
+                newIndex = restoredIndex
             }
             let stillLockedToday = remaining.contains { entry in
                 entry.date == today && (entry.advanced || entry.type == "off" || entry.type == "other")
@@ -344,6 +341,20 @@ final class TodayViewModel: ObservableObject {
             self.rotationIndex = newIndex
             self.actionDate = newActionDate
         }
+    }
+
+    private func rotationIndexBeforeUndoing(_ entry: HistoryRow) -> Int? {
+        let rotation = activeRotation
+        guard !rotation.isEmpty else { return nil }
+
+        let count = rotation.count
+        let previousIndex = ((rotationIndex - 1) % count + count) % count
+        if rotation[previousIndex].id == entry.type {
+            return previousIndex
+        }
+
+        let matchingIndexes = rotation.indices.filter { rotation[$0].id == entry.type }
+        return matchingIndexes.count == 1 ? matchingIndexes[0] : previousIndex
     }
 
     private func runAction(_ body: @escaping () async throws -> Void) async {
