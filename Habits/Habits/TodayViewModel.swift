@@ -127,7 +127,9 @@ final class TodayViewModel: ObservableObject {
     // MARK: - Loading
 
     func loadAll() async {
+        let hadLoadedWorkoutData = hasLoadedWorkoutData
         isLoading = true
+        hasLoadedWorkoutData = false
         errorMessage = nil
         do {
             async let stateRow = fetchOrCreateState()
@@ -183,6 +185,7 @@ final class TodayViewModel: ObservableObject {
             self.preferences = loadedPreferences
             self.hasLoadedWorkoutData = true
         } catch {
+            hasLoadedWorkoutData = hadLoadedWorkoutData
             if !(error is CancellationError) {
                 errorMessage = error.localizedDescription
             }
