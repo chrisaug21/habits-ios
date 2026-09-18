@@ -21,60 +21,62 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 16) {
-                    Color.clear.frame(height: 0).id(Self.topAnchor)
+            VStack(spacing: 0) {
+                HabitsLogoHeader()
+                    .padding(.horizontal, 16)
 
-                    HabitsSegmentedControl(items: StatsRange.allCases, selection: $viewModel.range) { $0.label }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Color.clear.frame(height: 0).id(Self.topAnchor)
 
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(HabitsColor.red)
+                            HabitsSegmentedControl(items: StatsRange.allCases, selection: $viewModel.range) { $0.label }
+
+                            if let error = viewModel.errorMessage {
+                                Text(error)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(HabitsColor.red)
+                            }
+
+                            if viewModel.hasAnyWorkouts {
+                                totalWorkoutsCard
+                                streaksCard
+                                consistencyCard
+                                typeBreakdownCard
+                            } else {
+                                emptyStateCard
+                            }
+
+                            weightChartCard
+
+                            HabitsVersionFooter()
+                        }
+                        .padding(16)
                     }
-
-                    if viewModel.hasAnyWorkouts {
-                        totalWorkoutsCard
-                        streaksCard
-                        consistencyCard
-                        typeBreakdownCard
-                    } else {
-                        emptyStateCard
+                    .refreshable {
+                        await viewModel.loadAll()
+                        selectDefaultWeightPoint()
                     }
-
-                    weightChartCard
-
-                    HabitsVersionFooter()
+                    .task {
+                        await viewModel.loadAll()
+                        selectDefaultWeightPoint()
+                    }
+                    .onChange(of: viewModel.range) { selectDefaultWeightPoint() }
+                    // TabView keeps each tab's ScrollView position across switches
+                    // (the view isn't recreated) — onAppear does fire every time the
+                    // tab becomes visible again, so use it to reset to the top
+                    // rather than leaving the user wherever they last scrolled.
+                    .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
                 }
-                .padding(16)
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .refreshable {
-                await viewModel.loadAll()
-                selectDefaultWeightPoint()
-            }
-            .task {
-                await viewModel.loadAll()
-                selectDefaultWeightPoint()
-            }
-            .onChange(of: viewModel.range) { selectDefaultWeightPoint() }
+            .toolbar(.hidden, for: .navigationBar)
             .overlay {
                 if viewModel.isLoading && viewModel.history.isEmpty {
                     ProgressView()
                         .tint(HabitsColor.accent)
                 }
-            }
-            // TabView keeps each tab's ScrollView position across switches
-            // (the view isn't recreated) — onAppear does fire every time the
-            // tab becomes visible again, so use it to reset to the top
-            // rather than leaving the user wherever they last scrolled.
-            .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
             }
         }
         .tint(HabitsColor.accent)

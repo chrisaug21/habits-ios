@@ -44,35 +44,43 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 16) {
-                    Color.clear.frame(height: 0).id(Self.topAnchor)
+            VStack(spacing: 0) {
+                HabitsLogoHeader()
+                    .padding(.horizontal, 16)
 
-                    accountCard
-                    todayTabCard
-                    WorkoutSequenceCard(
-                        viewModel: rotationBuilderViewModel,
-                        showBuilder: $showSequenceBuilder,
-                        showProgramReset: $showProgramReset
-                    )
-                    weightCard
-                    reminderCard
-                    appCard
-                    signOutButton
-                    dangerZoneCard
-                    HabitsVersionFooter()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Color.clear.frame(height: 0).id(Self.topAnchor)
+
+                            accountCard
+                            todayTabCard
+                            WorkoutSequenceCard(
+                                viewModel: rotationBuilderViewModel,
+                                showBuilder: $showSequenceBuilder,
+                                showProgramReset: $showProgramReset
+                            )
+                            weightCard
+                            reminderCard
+                            appCard
+                            signOutButton
+                            dangerZoneCard
+                            HabitsVersionFooter()
+                        }
+                        .padding(16)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onTapGesture { dismissKeyboard() }
+                    // TabView keeps each tab's ScrollView position across switches
+                    // (the view isn't recreated) — onAppear does fire every time the
+                    // tab becomes visible again, so use it to reset to the top
+                    // rather than leaving the user wherever they last scrolled.
+                    .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
                 }
-                .padding(16)
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture { dismissKeyboard() }
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .task {
                 settingsViewModel.loadProfile(from: currentUser?.userMetadata ?? [:])
                 await settingsViewModel.loadPreferences()
@@ -122,12 +130,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This will permanently delete all your data. This cannot be undone.")
-            }
-            // TabView keeps each tab's ScrollView position across switches
-            // (the view isn't recreated) — onAppear does fire every time the
-            // tab becomes visible again, so use it to reset to the top
-            // rather than leaving the user wherever they last scrolled.
-            .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
             }
         }
         .tint(HabitsColor.accent)

@@ -65,9 +65,12 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HabitsLogoHeader()
+                    .padding(.horizontal, 16)
+
                 HabitsSegmentedControl(items: LogSubTab.allCases, selection: animatedSubTab) { $0.rawValue }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 16)
                     .padding(.bottom, 12)
 
                 ScrollViewReader { proxy in
@@ -105,10 +108,7 @@ struct LogView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable {
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()

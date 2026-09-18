@@ -22,52 +22,58 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 16) {
-                    Color.clear.frame(height: 0).id(Self.topAnchor)
+            VStack(spacing: 0) {
+                HabitsLogoHeader(showsDate: true)
+                    .padding(.horizontal, 16)
 
-                    dateLabel
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Color.clear.frame(height: 0).id(Self.topAnchor)
 
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(HabitsColor.red)
-                    }
+                            if let error = viewModel.errorMessage {
+                                Text(error)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(HabitsColor.red)
+                            }
 
-                    if viewModel.preferences.show_workout_card {
-                        workoutCard
-                        if let tomorrow = viewModel.tomorrowWorkout, viewModel.todayEntry != nil {
-                            tomorrowCard(tomorrow)
+                            if viewModel.preferences.show_workout_card {
+                                workoutCard
+                                if let tomorrow = viewModel.tomorrowWorkout, viewModel.todayEntry != nil {
+                                    tomorrowCard(tomorrow)
+                                }
+                            }
+                            if viewModel.preferences.show_journal_card {
+                                journalCard
+                            }
+                            if viewModel.preferences.show_weight_card {
+                                weightCard
+                            }
+
+                            HabitsVersionFooter()
                         }
+                        .padding(16)
                     }
-                    if viewModel.preferences.show_journal_card {
-                        journalCard
+                    .refreshable {
+                        await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
+                        await viewModel.loadAll()
+                        await weightViewModel.loadEntries()
                     }
-                    if viewModel.preferences.show_weight_card {
-                        weightCard
+                    .task {
+                        await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
+                        await viewModel.loadAll()
+                        await weightViewModel.loadEntries()
                     }
-
-                    HabitsVersionFooter()
+                    // TabView keeps each tab's ScrollView position across switches
+                    // (the view isn't recreated) — onAppear does fire every time the
+                    // tab becomes visible again, so use it to reset to the top
+                    // rather than leaving the user wherever they last scrolled.
+                    .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
                 }
-                .padding(16)
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .refreshable {
-                await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
-                await viewModel.loadAll()
-                await weightViewModel.loadEntries()
-            }
-            .task {
-                await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
-                await viewModel.loadAll()
-                await weightViewModel.loadEntries()
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .overlay {
                 if viewModel.isLoading && viewModel.history.isEmpty {
                     ProgressView()
@@ -79,12 +85,6 @@ struct TodayView: View {
             .sheet(isPresented: $showOtherActivitySheet) { otherActivitySheet }
             .sheet(isPresented: $showJournalSheet) { journalSheet }
             .sheet(isPresented: $showWeightSheet) { weightSheet }
-            // TabView keeps each tab's ScrollView position across switches
-            // (the view isn't recreated) — onAppear does fire every time the
-            // tab becomes visible again, so use it to reset to the top
-            // rather than leaving the user wherever they last scrolled.
-            .onAppear { proxy.scrollTo(Self.topAnchor, anchor: .top) }
-            }
         }
         .tint(HabitsColor.accent)
         .preferredColorScheme(.dark)
@@ -94,17 +94,6 @@ struct TodayView: View {
 
     private func presentSheet(_ present: @escaping () -> Void) {
         runAfterTapFeedback(present)
-    }
-
-    // MARK: - Header
-
-    private var dateLabel: some View {
-        Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(1.2)
-            .foregroundStyle(HabitsColor.textSecondary)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
     }
 
     // MARK: - Workout card
