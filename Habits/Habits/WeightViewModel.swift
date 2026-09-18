@@ -72,7 +72,12 @@ final class WeightViewModel: ObservableObject {
     }
 
     // Per SPEC.md: HealthKit always wins over a same-day manual entry.
-    func syncFromHealthKit() async {
+    func syncFromHealthKit(requestAuthorizationIfNeeded: Bool = true) async {
+        guard requestAuthorizationIfNeeded || HealthKitManager.shared.hasRequestedAuthorization else {
+            await loadEntries()
+            return
+        }
+
         isSyncing = true
         errorMessage = nil
         do {

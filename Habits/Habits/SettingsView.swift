@@ -276,6 +276,14 @@ struct SettingsView: View {
                 Text("Notifications are turned off for Ondoloop. Enable them in Settings to get reminders.")
                     .font(.system(size: 12))
                     .foregroundStyle(HabitsColor.red)
+                Button("Open Settings") {
+                    runAfterTapFeedback {
+                        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(settingsURL)
+                        }
+                    }
+                }
+                .buttonStyle(HabitsGhostButtonStyle(size: .large))
             }
 
             if let error = reminderViewModel.errorMessage {

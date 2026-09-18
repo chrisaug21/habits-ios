@@ -24,7 +24,7 @@ enum ReminderManager {
 
         let content = UNMutableNotificationContent()
         content.title = "Log your weight"
-        content.body = "Don't forget to log today's weight in Habits."
+        content.body = "Don't forget to log today's weight in Ondoloop."
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: time, repeats: true)
