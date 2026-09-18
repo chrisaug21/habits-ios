@@ -27,7 +27,7 @@ struct TodayView: View {
                 VStack(spacing: 16) {
                     Color.clear.frame(height: 0).id(Self.topAnchor)
 
-                    todayHeader
+                    HabitsLogoHeader(showsDate: true)
 
                     if let error = viewModel.errorMessage {
                         Text(error)
@@ -91,32 +91,6 @@ struct TodayView: View {
 
     private func presentSheet(_ present: @escaping () -> Void) {
         runAfterTapFeedback(present)
-    }
-
-    // MARK: - Header
-
-    private var todayHeader: some View {
-        VStack(spacing: 4) {
-            Image("OndoloopLockupOndark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 190)
-                .accessibilityLabel("Ondoloop, The Habits App")
-
-            dateLabel
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 4)
-        .padding(.bottom, 2)
-    }
-
-    private var dateLabel: some View {
-        Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(1.2)
-            .foregroundStyle(HabitsColor.textSecondary)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
     }
 
     // MARK: - Workout card

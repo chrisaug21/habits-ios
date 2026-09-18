@@ -49,6 +49,8 @@ struct SettingsView: View {
                 VStack(spacing: 16) {
                     Color.clear.frame(height: 0).id(Self.topAnchor)
 
+                    HabitsLogoHeader()
+
                     accountCard
                     todayTabCard
                     WorkoutSequenceCard(
@@ -69,10 +71,7 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .onTapGesture { dismissKeyboard() }
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .task {
                 settingsViewModel.loadProfile(from: currentUser?.userMetadata ?? [:])
                 await settingsViewModel.loadPreferences()

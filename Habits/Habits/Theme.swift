@@ -44,6 +44,32 @@ enum HabitsColor {
     static let teal = Color(hex: 0x2dd4bf)
 }
 
+struct HabitsLogoHeader: View {
+    var showsDate = false
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image("OndoloopLockupOndark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 190)
+                .accessibilityLabel("Ondoloop, The Habits App")
+
+            if showsDate {
+                Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(HabitsColor.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+    }
+}
+
 enum HabitsInteractionTiming {
     static let tapFeedbackDelay: TimeInterval = 0.08
 }

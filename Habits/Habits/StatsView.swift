@@ -26,6 +26,8 @@ struct StatsView: View {
                 VStack(spacing: 16) {
                     Color.clear.frame(height: 0).id(Self.topAnchor)
 
+                    HabitsLogoHeader()
+
                     HabitsSegmentedControl(items: StatsRange.allCases, selection: $viewModel.range) { $0.label }
 
                     if let error = viewModel.errorMessage {
@@ -51,10 +53,7 @@ struct StatsView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable {
                 await viewModel.loadAll()
                 selectDefaultWeightPoint()
