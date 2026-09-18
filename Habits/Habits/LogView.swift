@@ -70,7 +70,7 @@ struct LogView: View {
 
                 HabitsSegmentedControl(items: LogSubTab.allCases, selection: animatedSubTab) { $0.rawValue }
                     .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    .padding(.top, 16)
                     .padding(.bottom, 12)
 
                 ScrollViewReader { proxy in
