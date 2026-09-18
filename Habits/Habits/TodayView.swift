@@ -27,7 +27,7 @@ struct TodayView: View {
                 VStack(spacing: 16) {
                     Color.clear.frame(height: 0).id(Self.topAnchor)
 
-                    dateLabel
+                    todayHeader
 
                     if let error = viewModel.errorMessage {
                         Text(error)
@@ -54,10 +54,7 @@ struct TodayView: View {
             }
             .background(HabitsColor.bg.ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .navigationTitle(habitsAppHeaderTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(HabitsColor.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable {
                 await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
                 await viewModel.loadAll()
@@ -97,6 +94,21 @@ struct TodayView: View {
     }
 
     // MARK: - Header
+
+    private var todayHeader: some View {
+        VStack(spacing: 4) {
+            Image("OndoloopLockupOndark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 190)
+                .accessibilityLabel("Ondoloop, The Habits App")
+
+            dateLabel
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+    }
 
     private var dateLabel: some View {
         Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
