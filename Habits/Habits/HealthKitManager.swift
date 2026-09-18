@@ -26,6 +26,8 @@ enum HealthKitError: LocalizedError {
 final class HealthKitManager {
     static let shared = HealthKitManager()
 
+    private static let authorizationRequestedKey = "com.chrisaug.habits.healthKitAuthorizationRequested"
+
     private let store = HKHealthStore()
     private let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass)!
 
@@ -35,9 +37,14 @@ final class HealthKitManager {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    var hasRequestedAuthorization: Bool {
+        UserDefaults.standard.bool(forKey: Self.authorizationRequestedKey)
+    }
+
     func requestAuthorization() async throws {
         guard isAvailable else { throw HealthKitError.notAvailable }
         try await store.requestAuthorization(toShare: [], read: [bodyMassType])
+        UserDefaults.standard.set(true, forKey: Self.authorizationRequestedKey)
     }
 
     /// Most recent body mass sample per day, looking back 14 days.

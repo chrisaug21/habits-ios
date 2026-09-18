@@ -59,12 +59,12 @@ struct TodayView: View {
             .toolbarBackground(HabitsColor.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
-                await weightViewModel.syncFromHealthKit()
+                await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()
             }
             .task {
-                await weightViewModel.syncFromHealthKit()
+                await weightViewModel.syncFromHealthKit(requestAuthorizationIfNeeded: false)
                 await viewModel.loadAll()
                 await weightViewModel.loadEntries()
             }
