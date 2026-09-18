@@ -16,6 +16,7 @@ final class TodayViewModel: ObservableObject {
     @Published var userRotation: [WorkoutDefinition] = []
     @Published var journal: [JournalRow] = []
     @Published var preferences = UserPreferencesRow.defaults
+    @Published private(set) var hasLoadedWorkoutData = false
 
     @Published var isLoading = false
     @Published var isProcessing = false
@@ -32,10 +33,12 @@ final class TodayViewModel: ObservableObject {
     private var hasCustomRotation: Bool { userRotation.count >= 2 }
 
     var activeRotation: [WorkoutDefinition] {
-        hasCustomRotation ? userRotation : DefaultWorkouts.rotation
+        guard hasLoadedWorkoutData else { return [] }
+        return hasCustomRotation ? userRotation : DefaultWorkouts.rotation
     }
 
     var activeWorkoutList: [WorkoutDefinition] {
+        guard hasLoadedWorkoutData else { return [] }
         guard hasCustomRotation else { return DefaultWorkouts.all }
         var seen = Set<String>()
         return userRotation.filter { seen.insert($0.id).inserted }
@@ -50,6 +53,7 @@ final class TodayViewModel: ObservableObject {
     }
 
     var suggested: WorkoutDefinition? {
+        guard hasLoadedWorkoutData else { return nil }
         let rotation = activeRotation
         guard !rotation.isEmpty else { return DefaultWorkouts.all.first }
         return rotation[rotationIndex % rotation.count]
@@ -76,6 +80,7 @@ final class TodayViewModel: ObservableObject {
     }
 
     var tomorrowWorkout: WorkoutDefinition? {
+        guard hasLoadedWorkoutData else { return nil }
         let rotation = activeRotation
         guard !rotation.isEmpty else { return nil }
         let idx = todayEntry != nil ? rotationIndex % rotation.count : (rotationIndex + 1) % rotation.count
@@ -122,7 +127,9 @@ final class TodayViewModel: ObservableObject {
     // MARK: - Loading
 
     func loadAll() async {
+        let hadLoadedWorkoutData = hasLoadedWorkoutData
         isLoading = true
+        hasLoadedWorkoutData = false
         errorMessage = nil
         do {
             async let stateRow = fetchOrCreateState()
@@ -156,11 +163,9 @@ final class TodayViewModel: ObservableObject {
             async let preferencesRow = fetchOrCreatePreferences()
 
             let resolvedState = try await stateRow
-            self.rotationIndex = resolvedState.rotation_index
-            self.actionDate = resolvedState.action_date
-            self.history = try await historyRows
-            self.workoutLibrary = try await libraryRows
-            self.userRotation = try await rotationRows.map { row in
+            let loadedHistory = try await historyRows
+            let loadedLibrary = try await libraryRows
+            let loadedRotation = try await rotationRows.map { row in
                 WorkoutDefinition(
                     id: row.workout_id,
                     name: row.workout_library?.name ?? row.workout_id,
@@ -168,9 +173,19 @@ final class TodayViewModel: ObservableObject {
                     category: row.workout_library?.category ?? ""
                 )
             }
-            self.journal = try await journalRows
-            self.preferences = try await preferencesRow
+            let loadedJournal = try await journalRows
+            let loadedPreferences = try await preferencesRow
+
+            self.rotationIndex = resolvedState.rotation_index
+            self.actionDate = resolvedState.action_date
+            self.history = loadedHistory
+            self.workoutLibrary = loadedLibrary
+            self.userRotation = loadedRotation
+            self.journal = loadedJournal
+            self.preferences = loadedPreferences
+            self.hasLoadedWorkoutData = true
         } catch {
+            hasLoadedWorkoutData = hadLoadedWorkoutData
             if !(error is CancellationError) {
                 errorMessage = error.localizedDescription
             }
@@ -288,7 +303,7 @@ final class TodayViewModel: ObservableObject {
     }
 
     func undoLastEntry() async {
-        guard !isProcessing, let target = latestUndoableEntry else { return }
+        guard !isProcessing, hasLoadedWorkoutData, let target = latestUndoableEntry else { return }
         let today = Self.todayStr()
         guard let yesterday = Self.dateString(daysAgo: 1) else { return }
         guard target.date == today || target.date == yesterday else { return }
@@ -305,11 +320,8 @@ final class TodayViewModel: ObservableObject {
             }
 
             var newIndex = self.rotationIndex
-            let targetWorkoutID = self.workout(byID: target.type)?.id
-            let rotationLooksAdvanced = target.advanced && targetWorkoutID != self.suggested?.id
-            if rotationLooksAdvanced {
-                let count = max(self.activeRotation.count, 1)
-                newIndex = ((self.rotationIndex - 1) % count + count) % count
+            if target.advanced, let restoredIndex = self.rotationIndexBeforeUndoing(target) {
+                newIndex = restoredIndex
             }
             let stillLockedToday = remaining.contains { entry in
                 entry.date == today && (entry.advanced || entry.type == "off" || entry.type == "other")
@@ -332,6 +344,20 @@ final class TodayViewModel: ObservableObject {
             self.rotationIndex = newIndex
             self.actionDate = newActionDate
         }
+    }
+
+    private func rotationIndexBeforeUndoing(_ entry: HistoryRow) -> Int? {
+        let rotation = activeRotation
+        guard !rotation.isEmpty else { return nil }
+
+        let count = rotation.count
+        let previousIndex = ((rotationIndex - 1) % count + count) % count
+        if rotation[previousIndex].id == entry.type {
+            return previousIndex
+        }
+
+        let matchingIndexes = rotation.indices.filter { rotation[$0].id == entry.type }
+        return matchingIndexes.count == 1 ? matchingIndexes[0] : previousIndex
     }
 
     private func runAction(_ body: @escaping () async throws -> Void) async {
